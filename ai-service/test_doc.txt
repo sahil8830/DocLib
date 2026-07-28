@@ -1,0 +1,1 @@
+Contexa is a powerful document query system powered by Gemini and ChromaDB.

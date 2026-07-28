@@ -1,0 +1,29 @@
+# Environment files — never commit these
+.env
+backend/.env
+ai-service/.env
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+frontend/dist/
+backend/dist/
+
+# Python
+ai-service/venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ChromaDB data
+data/chroma_db/
+
+# Uploaded files
+data/uploads/
+
+# Logs
+*.log

@@ -1,0 +1,33 @@
+chunking:
+  strategy: "fixed_size"        # Options: fixed_size | semantic
+  chunk_size: 512
+  chunk_overlap: 64
+  min_chunk_size: 100           # Discard chunks smaller than this
+
+retrieval:
+  top_k: 6
+  similarity_threshold: 0.65
+  hybrid_search: true
+  bm25_weight: 0.3              # BM25 vs vector weight (0 = pure vector)
+  vector_weight: 0.7
+  rerank: true                  # Re-rank top-k results
+
+llm:
+  provider: "gemini"
+  model: "gemini-2.5-flash"
+  temperature: 0.2
+  max_tokens: 2048
+  stream: true
+
+embeddings:
+  provider: "gemini"
+  model: "models/text-embedding-004"
+  batch_size: 100
+
+cache:
+  enabled: true
+  ttl_seconds: 3600             # 1 hour cache for query results
+
+logging:
+  level: "INFO"
+  structured: true
