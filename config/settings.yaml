@@ -14,14 +14,14 @@ retrieval:
 
 llm:
   provider: "gemini"
-  model: "gemini-2.5-flash"
+  model: "gemini-flash-latest"
   temperature: 0.2
   max_tokens: 2048
   stream: true
 
 embeddings:
   provider: "gemini"
-  model: "models/text-embedding-004"
+  model: "models/gemini-embedding-001"
   batch_size: 100
 
 cache:

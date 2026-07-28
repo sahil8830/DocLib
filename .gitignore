@@ -3,6 +3,9 @@
 backend/.env
 ai-service/.env
 
+
+backend/uploads
+
 # Dependencies
 node_modules/
 frontend/node_modules/

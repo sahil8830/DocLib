@@ -83,7 +83,7 @@ class RAGPipeline:
     # ─────────────────────────────────────────────
     #  QUERY
     # ─────────────────────────────────────────────
-    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = True) -> Dict:
+    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False) -> Dict:
         """Single-shot query, returns full answer."""
         if rewrite:
             question = await self.llm_service.rewrite_query(question)
@@ -99,7 +99,7 @@ class RAGPipeline:
         }
 
     async def stream_query(
-        self, question: str, filters: Optional[dict] = None, rewrite: bool = True
+        self, question: str, filters: Optional[dict] = None, rewrite: bool = False
     ) -> AsyncGenerator[str, None]:
         """Streaming query — yields text tokens as they arrive."""
         if rewrite:

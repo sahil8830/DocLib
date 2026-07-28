@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, ThumbsUp, ThumbsDown, FileText } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
 import api from '../services/api.js'
 import '../styles/chat.css'
@@ -22,28 +23,6 @@ function TypingIndicator() {
         <span className="typing-dot" />
       </div>
     </div>
-  )
-}
-
-function SourceCard({ source, index }) {
-  const filename = source.metadata?.source?.split(/[/\\]/).pop() || 'Document'
-  const page = source.metadata?.page ? ` · p.${source.metadata.page}` : ''
-  return (
-    <motion.div
-      className="source-card"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.07 }}
-    >
-      <div className="source-card-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div className="source-rank">{index + 1}</div>
-          <span className="source-filename">{filename}{page}</span>
-        </div>
-        <span className="source-score">{(source.score * 100).toFixed(0)}%</span>
-      </div>
-      <p className="source-excerpt">{source.content}</p>
-    </motion.div>
   )
 }
 
@@ -69,11 +48,13 @@ function MessageBubble({ msg }) {
       </div>
       <div className="message-content">
         <div className={`message-bubble ${msg.role} ${msg.streaming ? 'streaming' : ''}`}>
-          {msg.content.split('\n').map((line, i) => {
-            if (line.startsWith('**') && line.endsWith('**'))
-              return <strong key={i}>{line.slice(2, -2)}</strong>
-            return <span key={i}>{line}<br /></span>
-          })}
+          {msg.role === 'ai' ? (
+            <div className="markdown-body">
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
+          ) : (
+            <span>{msg.content}</span>
+          )}
         </div>
 
         {msg.role === 'ai' && !msg.streaming && (
@@ -100,7 +81,7 @@ function MessageBubble({ msg }) {
 
 export default function ChatPage() {
   const {
-    messages, isStreaming, activeSources,
+    messages, isStreaming,
     addMessage, updateLastMessage, setActiveSources, setStreaming,
   } = useAppStore()
 
@@ -142,7 +123,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('contexa_token') || ''}`,
         },
-        body: JSON.stringify({ question, rewrite: true }),
+        body: JSON.stringify({ question, rewrite: false }),
       })
 
       const reader = response.body?.getReader()
@@ -202,7 +183,7 @@ export default function ChatPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <FileText size={14} style={{ color: 'var(--text-muted)' }} />
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {activeSources.length > 0 ? `${activeSources.length} sources found` : 'No active query'}
+              AI-powered Q&A
             </span>
           </div>
         </div>
@@ -258,23 +239,6 @@ export default function ChatPage() {
             </button>
           </div>
           <p className="input-hint">Press Enter to send · Shift+Enter for new line</p>
-        </div>
-      </div>
-
-      <div className="sources-panel">
-        <div className="sources-header">
-          Sources {activeSources.length > 0 && `(${activeSources.length})`}
-        </div>
-        <div className="sources-list">
-          <AnimatePresence>
-            {activeSources.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', marginTop: 32 }}>
-                Sources will appear here after a query
-              </div>
-            ) : (
-              activeSources.map((s, i) => <SourceCard key={i} source={s} index={i} />)
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </div>

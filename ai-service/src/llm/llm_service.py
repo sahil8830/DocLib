@@ -4,13 +4,15 @@ Includes query rewriting and source-cited response formatting.
 """
 from abc import ABC, abstractmethod
 from typing import List, Dict, AsyncGenerator
-import google.generativeai as genai
 
+from google import genai
+from google.genai import types as genai_types
 from src.utils.config import GEMINI_API_KEY, settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-genai.configure(api_key=GEMINI_API_KEY)
+
+_client = genai.Client(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = """You are Contexa, an expert document assistant. Answer the user's question ONLY using the provided document context.
 
@@ -60,12 +62,9 @@ class GeminiLLMService(BaseLLMService):
         self.model_name = llm_cfg.get("model", "gemini-2.5-flash")
         self.temperature = llm_cfg.get("temperature", 0.2)
         self.max_tokens = llm_cfg.get("max_tokens", 2048)
-        self.model = genai.GenerativeModel(
-            self.model_name,
-            generation_config=genai.GenerationConfig(
-                temperature=self.temperature,
-                max_output_tokens=self.max_tokens,
-            ),
+        self._gen_config = genai_types.GenerateContentConfig(
+            temperature=self.temperature,
+            max_output_tokens=self.max_tokens,
         )
 
     def _build_context(self, chunks: List[Dict]) -> str:
@@ -82,7 +81,11 @@ class GeminiLLMService(BaseLLMService):
             return "I couldn't find relevant information in the uploaded documents to answer your question."
         context = self._build_context(context_chunks)
         prompt = SYSTEM_PROMPT.format(context=context, question=question)
-        response = await self.model.generate_content_async(prompt)
+        response = await _client.aio.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=self._gen_config,
+        )
         return response.text
 
     async def stream_generate(self, question: str, context_chunks: List[Dict]) -> AsyncGenerator[str, None]:
@@ -91,13 +94,21 @@ class GeminiLLMService(BaseLLMService):
             return
         context = self._build_context(context_chunks)
         prompt = SYSTEM_PROMPT.format(context=context, question=question)
-        async for chunk in await self.model.generate_content_async(prompt, stream=True):
+        async for chunk in await _client.aio.models.generate_content_stream(
+            model=self.model_name,
+            contents=prompt,
+            config=self._gen_config,
+        ):
             if chunk.text:
                 yield chunk.text
 
     async def rewrite_query(self, question: str) -> str:
         prompt = REWRITE_PROMPT.format(question=question)
-        response = await self.model.generate_content_async(prompt)
+        response = await _client.aio.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=self._gen_config,
+        )
         rewritten = response.text.strip()
         logger.info("query_rewritten", original=question, rewritten=rewritten)
         return rewritten

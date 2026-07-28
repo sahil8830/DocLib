@@ -8,13 +8,14 @@ from typing import List
 import time
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from src.utils.config import GEMINI_API_KEY, settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-genai.configure(api_key=GEMINI_API_KEY)
+_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 class BaseEmbeddingService(ABC):
@@ -40,28 +41,24 @@ class GeminiEmbeddingService(BaseEmbeddingService):
         retry=retry_if_exception_type(Exception),
     )
     def _embed_batch(self, texts: List[str], task_type: str = "RETRIEVAL_DOCUMENT") -> List[List[float]]:
-        result = genai.embed_content(
+        result = _client.models.embed_content(
             model=self.model,
-            content=texts,
-            task_type=task_type,
+            contents=texts,
+            config=genai_types.EmbedContentConfig(task_type=task_type),
         )
-        return result["embedding"] if len(texts) == 1 else [e for e in result["embedding"]]
+        return [e.values for e in result.embeddings]
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         all_embeddings = []
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i: i + self.batch_size]
             embeddings = self._embed_batch(batch, task_type="RETRIEVAL_DOCUMENT")
-            if isinstance(embeddings[0], float):
-                embeddings = [embeddings]  # single text returns flat list
             all_embeddings.extend(embeddings)
             logger.info("batch_embedded", batch_num=i // self.batch_size + 1, size=len(batch))
         return all_embeddings
 
     def embed_query(self, query: str) -> List[float]:
         result = self._embed_batch([query], task_type="RETRIEVAL_QUERY")
-        if isinstance(result[0], float):
-            return result
         return result[0]
 
 
