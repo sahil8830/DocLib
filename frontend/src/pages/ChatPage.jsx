@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ThumbsUp, ThumbsDown, FileText } from 'lucide-react'
+import { Send, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
@@ -176,15 +176,16 @@ export default function ChatPage() {
     <div className="chat-layout">
       <div className="chat-main">
         <div className="chat-header">
-          <div>
-            <div className="chat-title">Document Chat</div>
-            <div className="chat-subtitle">Ask anything about your uploaded documents</div>
+          <div className="chat-header-left">
+            <div className="chat-header-icon">⚡</div>
+            <div>
+              <div className="chat-title">Document Chat</div>
+              <div className="chat-subtitle">Ask anything about your uploaded documents</div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <FileText size={14} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              AI-powered Q&A
-            </span>
+          <div className="chat-header-badge">
+            <span className="dot" />
+            AI Ready
           </div>
         </div>
 

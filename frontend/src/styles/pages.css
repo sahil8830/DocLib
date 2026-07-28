@@ -6,26 +6,34 @@
   justify-content: space-between;
 }
 
-.page-title { font-size: 1.4rem; font-weight: 700; }
-.page-subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.page-subtitle { color: var(--text-muted); font-size: 0.82rem; margin-top: 4px; }
 
 .page-body { padding: 24px 32px; flex: 1; overflow-y: auto; }
 
 /* ── Drop Zone ─────────────────────────────────────────────── */
 .drop-zone {
-  border: 2px dashed var(--border);
+  border: 2px dashed rgba(109,40,217,0.3);
   border-radius: var(--radius-xl);
-  padding: 48px;
+  padding: 52px 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   cursor: pointer;
   transition: var(--transition-slow);
   position: relative;
   overflow: hidden;
-  background: var(--bg-glass);
+  background: linear-gradient(135deg, rgba(109,40,217,0.04) 0%, rgba(37,99,235,0.04) 100%);
   backdrop-filter: blur(8px);
   margin-bottom: 32px;
   text-align: center;
@@ -42,7 +50,8 @@
 
 .drop-zone:hover, .drop-zone.dragover {
   border-color: var(--accent-purple);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-glow), 0 0 0 1px rgba(109,40,217,0.2);
+  transform: translateY(-2px);
 }
 
 .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
