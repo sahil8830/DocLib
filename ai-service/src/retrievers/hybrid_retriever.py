@@ -56,6 +56,32 @@ class HybridRetriever(BaseRetriever):
         self.bm25_weight = bm25_weight
         self.vector_weight = vector_weight
 
+        # BM25 cache — rebuilt only when the corpus changes
+        self._bm25: Optional[BM25Okapi] = None
+        self._cached_corpus: Optional[List[str]] = None
+        self._cached_corpus_metas: Optional[List[dict]] = None
+        self._corpus_fingerprint: Optional[str] = None
+
+    def _get_corpus_fingerprint(self, corpus: List[str]) -> str:
+        """Cheap fingerprint: corpus length + first 50 chars of last doc."""
+        if not corpus:
+            return "empty"
+        return f"{len(corpus)}::{corpus[-1][:50]}"
+
+    def _get_bm25(self, corpus: List[str], corpus_metas: List[dict]):
+        """Return cached BM25 index, rebuilding only when corpus changes."""
+        fingerprint = self._get_corpus_fingerprint(corpus)
+        if self._bm25 is None or fingerprint != self._corpus_fingerprint:
+            logger.info("bm25_cache_rebuild", corpus_size=len(corpus))
+            tokenized_corpus = [doc.lower().split() for doc in corpus]
+            self._bm25 = BM25Okapi(tokenized_corpus)
+            self._cached_corpus = corpus
+            self._cached_corpus_metas = corpus_metas
+            self._corpus_fingerprint = fingerprint
+        else:
+            logger.info("bm25_cache_hit", corpus_size=len(corpus))
+        return self._bm25, self._cached_corpus, self._cached_corpus_metas
+
     def _rrf_score(self, rank: int, k: int = 60) -> float:
         return 1.0 / (k + rank)
 
@@ -66,13 +92,12 @@ class HybridRetriever(BaseRetriever):
         vector_docs = vector_results["documents"][0]
         vector_metas = vector_results["metadatas"][0]
 
-        # --- BM25 search ---
+        # --- BM25 search (cached) ---
         all_docs = self.vector_store._collection.get(include=["documents", "metadatas"])
         corpus = all_docs["documents"]
         corpus_metas = all_docs["metadatas"]
-        tokenized_corpus = [doc.lower().split() for doc in corpus]
+        bm25, corpus, corpus_metas = self._get_bm25(corpus, corpus_metas)
 
-        bm25 = BM25Okapi(tokenized_corpus)
         bm25_scores = bm25.get_scores(query.lower().split())
         top_bm25_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[: top_k * 2]
 
@@ -109,6 +134,12 @@ class HybridRetriever(BaseRetriever):
 
         logger.info("hybrid_retrieval_done", query_len=len(query), results=len(results))
         return results
+
+    def invalidate_bm25_cache(self):
+        """Call this after ingestion or deletion to force a BM25 rebuild on next query."""
+        self._bm25 = None
+        self._corpus_fingerprint = None
+        logger.info("bm25_cache_invalidated")
 
 
 class RetrieverFactory:

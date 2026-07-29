@@ -9,7 +9,7 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000'
 
 // Single-shot query
 router.post('/', queryRateLimiter, async (req, res) => {
-  const { question, filters, rewrite = true } = req.body
+  const { question, filters, rewrite = true, history = [] } = req.body
   if (!question?.trim()) {
     res.status(400).json({ error: 'Question is required' })
     return
@@ -18,7 +18,7 @@ router.post('/', queryRateLimiter, async (req, res) => {
   const queryId = uuidv4()
   const startTime = Date.now()
   try {
-    const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, stream: false })
+    const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, history, stream: false })
     const latencyMs = Date.now() - startTime
     analyticsStore.addQuery({
       id: queryId,
@@ -35,7 +35,7 @@ router.post('/', queryRateLimiter, async (req, res) => {
 
 // SSE Streaming query
 router.post('/stream', queryRateLimiter, async (req, res) => {
-  const { question, filters, rewrite = true } = req.body
+  const { question, filters, rewrite = true, history = [] } = req.body
   if (!question?.trim()) {
     res.status(400).json({ error: 'Question is required' })
     return
@@ -50,10 +50,13 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no')
   res.flushHeaders()
 
+  // Send queryId immediately so the frontend can wire up feedback before the stream finishes
+  res.write(`data: ${JSON.stringify({ type: 'query_id', queryId })}\n\n`)
+
   try {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/query/stream`,
-      { question, filters, rewrite, stream: true },
+      { question, filters, rewrite, history, stream: true },
       { responseType: 'stream' }
     )
 
@@ -70,19 +73,21 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
         latencyMs,
         chunkCount: 0,
       })
-      res.write(`data: ${JSON.stringify({ type: 'query_id', queryId })}\n\n`)
       res.end()
     })
 
-    aiResponse.data.on('error', () => {
+    aiResponse.data.on('error', (err) => {
+      console.error('AI stream error:', err.message)
       res.write(`data: ${JSON.stringify({ type: 'error', message: 'Stream error' })}\n\n`)
       res.end()
     })
   } catch (err) {
+    console.error('Stream query failed:', err.message)
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`)
     res.end()
   }
 })
+
 
 // Feedback endpoint
 router.post('/:queryId/feedback', (req, res) => {

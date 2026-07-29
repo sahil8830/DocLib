@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
@@ -34,7 +34,9 @@ function MessageBubble({ msg }) {
     try {
       await api.post(`/query/${msg.queryId}/feedback`, { feedback: type })
       setFeedback(msg.id, type)
-    } catch {}
+    } catch (err) {
+      console.error('Failed to submit feedback:', err)
+    }
   }
 
   return (
@@ -79,18 +81,72 @@ function MessageBubble({ msg }) {
   )
 }
 
+// ── Sources Panel ────────────────────────────────────────────
+function SourcesPanel({ sources, onClose }) {
+  return (
+    <motion.div
+      className="sources-panel"
+      initial={{ x: '100%', opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: '100%', opacity: 0 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+    >
+      <div className="sources-header">
+        <div className="sources-title">
+          <BookOpen size={15} />
+          <span>Sources ({sources.length})</span>
+        </div>
+        <button className="sources-close" onClick={onClose}><X size={15} /></button>
+      </div>
+      <div className="sources-list">
+        {sources.map((src, i) => {
+          const filename = src.metadata?.source || src.metadata?.filename || 'Document'
+          const page = src.metadata?.page
+          return (
+            <div key={i} className="source-item">
+              <div className="source-item-header">
+                <div className="source-name">
+                  <FileText size={12} />
+                  <span>{filename}{page ? `, p.${page}` : ''}</span>
+                </div>
+                <span className="source-score">{(src.score * 100).toFixed(0)}%</span>
+              </div>
+              <p className="source-preview">{src.content?.slice(0, 220)}…</p>
+            </div>
+          )
+        })}
+      </div>
+    </motion.div>
+  )
+}
+
 export default function ChatPage() {
   const {
-    messages, isStreaming,
-    addMessage, updateLastMessage, setActiveSources, setStreaming,
+    messages, isStreaming, activeSources, documents,
+    addMessage, updateLastMessage, setActiveSources, setStreaming, setLastMessageQueryId,
   } = useAppStore()
 
   const [input, setInput] = useState('')
+  const [showSources, setShowSources] = useState(false)
+  const [filterDocId, setFilterDocId] = useState(null) // null = all docs
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Auto-show sources panel when new sources arrive
+  useEffect(() => {
+    if (activeSources.length > 0) setShowSources(true)
+  }, [activeSources])
+
+  // Build history from last 6 completed message pairs
+  const buildHistory = useCallback(() => {
+    return messages
+      .filter((m) => !m.streaming && m.content)
+      .slice(-6)
+      .map((m) => ({ role: m.role === 'ai' ? 'model' : 'user', content: m.content }))
   }, [messages])
 
   const handleSend = useCallback(async (question) => {
@@ -116,6 +172,9 @@ export default function ChatPage() {
     addMessage(aiMsg)
     setActiveSources([])
 
+    const filters = filterDocId ? { document_id: filterDocId } : undefined
+    const history = buildHistory()
+
     try {
       const response = await fetch('/api/query/stream', {
         method: 'POST',
@@ -123,39 +182,49 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('contexa_token') || ''}`,
         },
-        body: JSON.stringify({ question, rewrite: false }),
+        body: JSON.stringify({ question, filters, history, rewrite: false }),
       })
 
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
+      let buffer = ''
 
       while (reader) {
         const { done, value } = await reader.read()
         if (done) break
-        const text = decoder.decode(value)
-        const lines = text.split('\n').filter((l) => l.startsWith('data: '))
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
 
         for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
           try {
             const data = JSON.parse(line.slice(6))
-            if (data.type === 'sources') {
+            if (data.type === 'query_id') {
+              setLastMessageQueryId(data.queryId)
+            } else if (data.type === 'sources') {
               setActiveSources(data.sources)
             } else if (data.type === 'token') {
               fullText += data.text
               updateLastMessage(fullText, true)
+            } else if (data.type === 'error') {
+              console.error('Stream error from server:', data.message)
             }
-          } catch {}
+          } catch (parseErr) {
+            console.warn('Failed to parse SSE line:', line, parseErr)
+          }
         }
       }
 
       updateLastMessage(fullText, false)
-    } catch {
+    } catch (err) {
+      console.error('handleSend stream failed:', err)
       updateLastMessage('Sorry, something went wrong. Please try again.', false)
     } finally {
       setStreaming(false)
     }
-  }, [isStreaming, addMessage, updateLastMessage, setActiveSources, setStreaming])
+  }, [isStreaming, filterDocId, buildHistory, addMessage, updateLastMessage, setActiveSources, setStreaming, setLastMessageQueryId])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -172,6 +241,8 @@ export default function ChatPage() {
     }
   }
 
+  const readyDocs = documents.filter((d) => d.status === 'ready')
+
   return (
     <div className="chat-layout">
       <div className="chat-main">
@@ -183,43 +254,89 @@ export default function ChatPage() {
               <div className="chat-subtitle">Ask anything about your uploaded documents</div>
             </div>
           </div>
-          <div className="chat-header-badge">
-            <span className="dot" />
-            AI Ready
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {activeSources.length > 0 && (
+              <button
+                id="toggle-sources"
+                className={`sources-toggle-btn ${showSources ? 'active' : ''}`}
+                onClick={() => setShowSources((v) => !v)}
+                title="Toggle sources panel"
+              >
+                <BookOpen size={14} />
+                {activeSources.length} source{activeSources.length !== 1 ? 's' : ''}
+              </button>
+            )}
+            <div className="chat-header-badge">
+              <span className="dot" />
+              AI Ready
+            </div>
           </div>
         </div>
 
-        <div className="chat-messages">
-          {messages.length === 0 && (
-            <div className="chat-welcome">
-              <div className="welcome-icon">⚡</div>
-              <h1 className="welcome-title">Ask Contexa</h1>
-              <p className="welcome-subtitle">
-                Upload documents in the Library, then ask questions. I'll find the most relevant information and cite my sources.
-              </p>
-              <div className="suggestion-chips">
-                {SUGGESTIONS.map((s) => (
-                  <button key={s} className="suggestion-chip" onClick={() => handleSend(s)}>{s}</button>
-                ))}
+        <div className="chat-body">
+          <div className="chat-messages">
+            {messages.length === 0 && (
+              <div className="chat-welcome">
+                <div className="welcome-icon">⚡</div>
+                <h1 className="welcome-title">Ask Contexa</h1>
+                <p className="welcome-subtitle">
+                  Upload documents in the Library, then ask questions. I'll find the most relevant information and cite my sources.
+                </p>
+                <div className="suggestion-chips">
+                  {SUGGESTIONS.map((s) => (
+                    <button key={s} className="suggestion-chip" onClick={() => handleSend(s)}>{s}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            <AnimatePresence>
+              {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
+            </AnimatePresence>
+
+            {isStreaming && messages[messages.length - 1]?.content === '' && <TypingIndicator />}
+            <div ref={messagesEndRef} />
+          </div>
 
           <AnimatePresence>
-            {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
+            {showSources && activeSources.length > 0 && (
+              <SourcesPanel sources={activeSources} onClose={() => setShowSources(false)} />
+            )}
           </AnimatePresence>
-
-          {isStreaming && messages[messages.length - 1]?.content === '' && <TypingIndicator />}
-          <div ref={messagesEndRef} />
         </div>
 
         <div className="chat-input-area">
+          {/* Document filter chips */}
+          {readyDocs.length > 0 && (
+            <div className="doc-filter-chips">
+              <button
+                className={`doc-chip ${filterDocId === null ? 'active' : ''}`}
+                onClick={() => setFilterDocId(null)}
+              >
+                All docs
+              </button>
+              {readyDocs.map((doc) => (
+                <button
+                  key={doc.id}
+                  className={`doc-chip ${filterDocId === doc.id ? 'active' : ''}`}
+                  onClick={() => setFilterDocId(filterDocId === doc.id ? null : doc.id)}
+                  title={doc.originalName}
+                >
+                  {doc.originalName.length > 22 ? doc.originalName.slice(0, 20) + '…' : doc.originalName}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="chat-input-wrapper">
             <textarea
               ref={textareaRef}
               id="chat-input"
               className="chat-textarea"
-              placeholder="Ask a question about your documents…"
+              placeholder={filterDocId
+                ? `Ask about ${readyDocs.find(d => d.id === filterDocId)?.originalName ?? 'this document'}…`
+                : 'Ask a question about your documents…'
+              }
               value={input}
               onChange={(e) => { setInput(e.target.value); handleTextareaResize() }}
               onKeyDown={handleKeyDown}

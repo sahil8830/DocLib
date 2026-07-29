@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes')
 const documentsRoutes = require('./routes/documents.routes')
 const queryRoutes = require('./routes/query.routes')
 const analyticsRoutes = require('./routes/analytics.routes')
+const settingsRoutes = require('./routes/settings.routes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { rateLimiter } = require('./middleware/rateLimiter')
 
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/documents', documentsRoutes)
 app.use('/api/query', queryRoutes)
 app.use('/api/analytics', analyticsRoutes)
+app.use('/api/settings', settingsRoutes)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'healthy', service: 'Contexa Backend', timestamp: new Date().toISOString() })

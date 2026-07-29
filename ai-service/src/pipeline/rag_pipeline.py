@@ -10,7 +10,7 @@ from src.loaders.document_loader import LoaderFactory, Document
 from src.chunkers.chunker import ChunkerFactory
 from src.embeddings.embedding_service import EmbeddingServiceFactory
 from src.vectorstore.chroma_store import ChromaVectorStore
-from src.retrievers.hybrid_retriever import RetrieverFactory
+from src.retrievers.hybrid_retriever import RetrieverFactory, HybridRetriever
 from src.llm.llm_service import LLMServiceFactory
 from src.utils.config import settings
 from src.utils.logger import get_logger
@@ -73,6 +73,10 @@ class RAGPipeline:
         embeddings = self.embedding_service.embed_texts(texts)
         self.vector_store.add_documents(texts, embeddings, metadatas, ids)
 
+        # Invalidate BM25 cache so the next query uses the updated corpus
+        if isinstance(self.retriever, HybridRetriever):
+            self.retriever.invalidate_bm25_cache()
+
         logger.info("ingestion_complete", doc_id=document_id, chunks=len(chunks))
         return {
             "document_id": document_id,
@@ -83,13 +87,13 @@ class RAGPipeline:
     # ─────────────────────────────────────────────
     #  QUERY
     # ─────────────────────────────────────────────
-    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False) -> Dict:
+    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None) -> Dict:
         """Single-shot query, returns full answer."""
         if rewrite:
             question = await self.llm_service.rewrite_query(question)
 
         chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=filters)
-        answer = await self.llm_service.generate(question, chunks)
+        answer = await self.llm_service.generate(question, chunks, history=history)
 
         return {
             "answer": answer,
@@ -99,7 +103,7 @@ class RAGPipeline:
         }
 
     async def stream_query(
-        self, question: str, filters: Optional[dict] = None, rewrite: bool = False
+        self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None
     ) -> AsyncGenerator[str, None]:
         """Streaming query — yields text tokens as they arrive."""
         if rewrite:
@@ -124,7 +128,7 @@ class RAGPipeline:
         yield f"data: {sources_event}\n\n"
 
         # Stream answer tokens
-        async for token in self.llm_service.stream_generate(question, chunks):
+        async for token in self.llm_service.stream_generate(question, chunks, history=history):
             token_event = json.dumps({"type": "token", "text": token})
             yield f"data: {token_event}\n\n"
 

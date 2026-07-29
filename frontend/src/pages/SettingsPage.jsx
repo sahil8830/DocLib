@@ -1,20 +1,107 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import api from '../services/api.js'
+import { useAppStore } from '../store/useAppStore.js'
 import '../styles/pages.css'
 
+const DEFAULT_SETTINGS = {
+  chunking: { strategy: 'fixed_size', chunk_size: 512, chunk_overlap: 64 },
+  retrieval: { top_k: 6, similarity_threshold: 0.65, hybrid_search: true, bm25_weight: 0.3 },
+  llm: { model: 'gemini-2.5-flash' },
+}
+
 export default function SettingsPage() {
+  const { addToast } = useAppStore()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  // Chunking
   const [chunkSize, setChunkSize] = useState(512)
   const [chunkOverlap, setChunkOverlap] = useState(64)
+  const [strategy, setStrategy] = useState('fixed_size')
+
+  // Retrieval
   const [topK, setTopK] = useState(6)
   const [threshold, setThreshold] = useState(0.65)
   const [hybridSearch, setHybridSearch] = useState(true)
-  const [rewrite, setRewrite] = useState(true)
   const [bm25Weight, setBm25Weight] = useState(0.3)
-  const [strategy, setStrategy] = useState('fixed_size')
-  const [saved, setSaved] = useState(false)
+  const [rewrite, setRewrite] = useState(true)
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  // LLM
+  const [llmModel, setLlmModel] = useState('gemini-2.5-flash')
+
+  useEffect(() => {
+    api.get('/settings')
+      .then(({ data }) => {
+        const s = data
+        setStrategy(s.chunking?.strategy ?? 'fixed_size')
+        setChunkSize(s.chunking?.chunk_size ?? 512)
+        setChunkOverlap(s.chunking?.chunk_overlap ?? 64)
+        setTopK(s.retrieval?.top_k ?? 6)
+        setThreshold(s.retrieval?.similarity_threshold ?? 0.65)
+        setHybridSearch(s.retrieval?.hybrid_search ?? true)
+        setBm25Weight(s.retrieval?.bm25_weight ?? 0.3)
+        setRewrite(s.retrieval?.rewrite ?? true)
+        setLlmModel(s.llm?.model ?? 'gemini-2.5-flash')
+      })
+      .catch((err) => {
+        console.error('Failed to load settings:', err)
+        addToast({ id: 'settings-load-err', message: 'Could not load settings — showing defaults', type: 'error' })
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.put('/settings', {
+        chunking: { strategy, chunk_size: chunkSize, chunk_overlap: chunkOverlap },
+        retrieval: {
+          top_k: topK,
+          similarity_threshold: threshold,
+          hybrid_search: hybridSearch,
+          bm25_weight: bm25Weight,
+          rewrite,
+        },
+        llm: { model: llmModel },
+      })
+      setSaved(true)
+      addToast({ id: 'settings-saved', message: 'Settings saved — pipeline reloaded', type: 'success' })
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      console.error('Failed to save settings:', err)
+      addToast({ id: 'settings-save-err', message: 'Failed to save settings. Please try again.', type: 'error' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Settings</h1>
+            <p className="page-subtitle">Tune the RAG pipeline parameters</p>
+          </div>
+        </div>
+        <div className="page-body">
+          <div className="settings-section">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="setting-row">
+                <div className="setting-info">
+                  <div className="skeleton" style={{ height: 16, width: 140, marginBottom: 8 }} />
+                  <div className="skeleton" style={{ height: 12, width: 220 }} />
+                </div>
+                <div className="setting-control">
+                  <div className="skeleton" style={{ height: 32, width: 160, borderRadius: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -24,8 +111,11 @@ export default function SettingsPage() {
           <h1 className="page-title">Settings</h1>
           <p className="page-subtitle">Tune the RAG pipeline parameters</p>
         </div>
-        <button id="save-settings" className="btn btn-primary" onClick={handleSave}>
-          {saved ? '✓ Saved' : 'Save Changes'}
+        <button id="save-settings" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          {saving
+            ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+            : saved ? '✓ Saved' : 'Save Changes'
+          }
         </button>
       </div>
 
@@ -156,10 +246,10 @@ export default function SettingsPage() {
               <div className="setting-desc">Gemini model for answer generation</div>
             </div>
             <div className="setting-control">
-              <select id="llm-model" className="input" style={{ width: 200 }}>
-                <option>gemini-2.5-flash</option>
-                <option>gemini-2.5-pro</option>
-                <option>gemini-1.5-flash</option>
+              <select id="llm-model" className="input" style={{ width: 200 }} value={llmModel} onChange={(e) => setLlmModel(e.target.value)}>
+                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
               </select>
             </div>
           </div>

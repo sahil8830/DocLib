@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 import api from '../services/api.js'
 import '../styles/pages.css'
 
@@ -96,7 +96,15 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                   <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#7c3aed" />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {[
+                      { name: 'Positive',    value: summary?.queries.positive || 0,                                                                                            fill: '#10b981' },
+                      { name: 'Negative',    value: summary?.queries.negative || 0,                                                                                            fill: '#ef4444' },
+                      { name: 'No Feedback', value: (summary?.queries.total || 0) - (summary?.queries.positive || 0) - (summary?.queries.negative || 0),                      fill: '#5a5a72' },
+                    ].map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
