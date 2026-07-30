@@ -153,6 +153,12 @@ export default function ChatPage() {
     if (!question.trim() || isStreaming) return
     setInput('')
 
+    // Snapshot completed messages BEFORE adding the new ones
+    const currentMessages = useAppStore.getState().messages
+    const history = currentMessages
+      .filter((m) => !m.streaming && m.content)
+      .map((m) => ({ role: m.role === 'ai' ? 'model' : 'user', content: m.content }))
+
     const userMsg = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -182,7 +188,11 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('contexa_token') || ''}`,
         },
+<<<<<<< Updated upstream
         body: JSON.stringify({ question, filters, history, rewrite: false }),
+=======
+        body: JSON.stringify({ question, rewrite: false, history }),
+>>>>>>> Stashed changes
       })
 
       const reader = response.body?.getReader()

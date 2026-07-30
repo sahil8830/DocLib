@@ -87,13 +87,21 @@ class RAGPipeline:
     # ─────────────────────────────────────────────
     #  QUERY
     # ─────────────────────────────────────────────
+<<<<<<< Updated upstream
     async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None) -> Dict:
+=======
+    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[List[Dict]] = None) -> Dict:
+>>>>>>> Stashed changes
         """Single-shot query, returns full answer."""
         if rewrite:
             question = await self.llm_service.rewrite_query(question)
 
         chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=filters)
+<<<<<<< Updated upstream
         answer = await self.llm_service.generate(question, chunks, history=history)
+=======
+        answer = await self.llm_service.generate(question, chunks, history or [])
+>>>>>>> Stashed changes
 
         return {
             "answer": answer,
@@ -103,7 +111,11 @@ class RAGPipeline:
         }
 
     async def stream_query(
+<<<<<<< Updated upstream
         self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None
+=======
+        self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[List[Dict]] = None
+>>>>>>> Stashed changes
     ) -> AsyncGenerator[str, None]:
         """Streaming query — yields text tokens as they arrive."""
         if rewrite:
@@ -128,7 +140,11 @@ class RAGPipeline:
         yield f"data: {sources_event}\n\n"
 
         # Stream answer tokens
+<<<<<<< Updated upstream
         async for token in self.llm_service.stream_generate(question, chunks, history=history):
+=======
+        async for token in self.llm_service.stream_generate(question, chunks, history or []):
+>>>>>>> Stashed changes
             token_event = json.dumps({"type": "token", "text": token})
             yield f"data: {token_event}\n\n"
 

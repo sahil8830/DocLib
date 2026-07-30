@@ -18,7 +18,11 @@ router.post('/', queryRateLimiter, async (req, res) => {
   const queryId = uuidv4()
   const startTime = Date.now()
   try {
+<<<<<<< Updated upstream
     const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, history, stream: false })
+=======
+    const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, stream: false, history })
+>>>>>>> Stashed changes
     const latencyMs = Date.now() - startTime
     analyticsStore.addQuery({
       id: queryId,
@@ -56,7 +60,11 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
   try {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/query/stream`,
+<<<<<<< Updated upstream
       { question, filters, rewrite, history, stream: true },
+=======
+      { question, filters, rewrite, stream: true, history },
+>>>>>>> Stashed changes
       { responseType: 'stream' }
     )
 
