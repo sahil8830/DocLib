@@ -5,7 +5,7 @@ Internal FastAPI service consumed by the Node.js Express gateway.
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api.routes import ingest, query, documents, health
+from src.api.routes import ingest, query, documents, health, settings as settings_route
 from src.utils.config import settings
 from src.utils.logger import get_logger
 
@@ -30,6 +30,7 @@ app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(documents.router, prefix="/documents", tags=["documents"])
+app.include_router(settings_route.router, prefix="/settings", tags=["settings"])
 
 
 @app.on_event("startup")

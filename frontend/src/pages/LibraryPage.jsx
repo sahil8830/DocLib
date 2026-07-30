@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { Upload, Trash2, RefreshCw, FileText } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Upload, Trash2, RefreshCw, FileText, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../store/useAppStore.js'
 import api from '../services/api.js'
@@ -22,33 +22,59 @@ export default function LibraryPage() {
   const { documents, setDocuments, addDocument, updateDocument, removeDocument, addToast } = useAppStore()
   const [dragover, setDragover] = useState(false)
   const [uploads, setUploads] = useState([])
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
+  const intervalRef = useRef(null)
 
   useEffect(() => {
     loadDocuments()
   }, [])
 
-  // Poll status for processing docs
+  // Stable polling — interval is created once while any doc is processing.
+  // Keyed on a boolean so we never recreate it on every status-poll response.
+  const anyProcessing = documents.some((d) => d.status === 'processing')
+
   useEffect(() => {
-    const processing = documents.filter((d) => d.status === 'processing')
-    if (processing.length === 0) return
-    const timer = setInterval(async () => {
+    if (!anyProcessing) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      return
+    }
+
+    if (intervalRef.current) return // already polling
+
+    intervalRef.current = setInterval(async () => {
+      const processing = useAppStore.getState().documents.filter((d) => d.status === 'processing')
       for (const doc of processing) {
         try {
           const { data } = await api.get(`/documents/${doc.id}/status`)
           if (data.status !== 'processing') {
             updateDocument(doc.id, { status: data.status, chunks: data.chunks })
           }
-        } catch {}
+        } catch (err) {
+          console.warn(`Failed to poll status for doc ${doc.id}:`, err.message)
+        }
       }
     }, 3000)
-    return () => clearInterval(timer)
-  }, [documents])
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [anyProcessing])
 
   const loadDocuments = async () => {
     try {
       const { data } = await api.get('/documents/')
       setDocuments(data.documents)
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load documents:', err)
+      addToast({ id: 'load-error', message: 'Failed to load documents. Please refresh.', type: 'error' })
+    }
   }
 
   const handleUpload = useCallback(async (files) => {
@@ -91,13 +117,14 @@ export default function LibraryPage() {
   }, [addDocument, addToast])
 
   const handleDelete = async (doc) => {
-    if (!confirm(`Delete "${doc.originalName}"?`)) return
     try {
       await api.delete(`/documents/${doc.id}`)
       removeDocument(doc.id)
       addToast({ id: doc.id, message: `Deleted ${doc.originalName}`, type: 'success' })
     } catch {
       addToast({ id: doc.id, message: 'Failed to delete document', type: 'error' })
+    } finally {
+      setDeleteTarget(null)
     }
   }
 
@@ -212,7 +239,7 @@ export default function LibraryPage() {
                         id={`delete-${doc.id}`}
                         className="btn btn-danger"
                         style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                        onClick={() => handleDelete(doc)}
+                        onClick={() => setDeleteTarget(doc)}
                       >
                         <Trash2 size={13} /> Delete
                       </button>
@@ -224,6 +251,26 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="confirm-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="confirm-box" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-icon"><AlertTriangle size={22} color="#ef4444" /></div>
+            <div className="confirm-title">Delete document?</div>
+            <div className="confirm-message">
+              <span className="confirm-filename">{deleteTarget.originalName}</span> will be permanently removed
+              from your library and its chunks will be deleted from the vector store.
+            </div>
+            <div className="confirm-actions">
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDelete(deleteTarget)}>
+                <Trash2 size={13} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
