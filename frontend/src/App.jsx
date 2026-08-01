@@ -8,7 +8,6 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import HistoryPage from './pages/HistoryPage.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import ToastContainer from './components/ToastContainer.jsx'
-import ThemeToggle from './components/ThemeToggle.jsx'
 import './styles/global.css'
 import './styles/sidebar.css'
 
@@ -30,7 +29,6 @@ export default function App() {
 
   if (!user) return (
     <>
-      <ThemeToggle />
       <AuthPage />
     </>
   )
@@ -42,7 +40,6 @@ export default function App() {
       <div className="app-layout">
         <Sidebar />
         <div className="main-content">
-          <ThemeToggle />
           <Page />
         </div>
       </div>

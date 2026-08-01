@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquare, BookOpen, BarChart2, Settings, LogOut, Zap, Clock } from 'lucide-react'
+import { MessageSquare, BookOpen, BarChart2, Settings, LogOut, Zap, Clock, Sun, Moon } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore.js'
 import '../styles/sidebar.css'
 
@@ -12,7 +12,7 @@ const navItems = [
 ]
 
 export default function Sidebar() {
-  const { currentPage, setCurrentPage, user, logout } = useAppStore()
+  const { currentPage, setCurrentPage, user, logout, theme, toggleTheme } = useAppStore()
 
   return (
     <aside className="sidebar">
@@ -45,6 +45,17 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="sidebar-footer">
+        {/* Theme toggle */}
+        <button
+          id="btn-theme-toggle"
+          className="theme-toggle-sidebar"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}
+          <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+        </button>
+
         {/* User info + logout */}
         {user && (
           <div className="sidebar-user">
