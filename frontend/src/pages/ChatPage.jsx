@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, ChevronDown } from 'lucide-react'
+import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, ChevronDown, Zap, Bot, User2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
@@ -16,7 +16,7 @@ const SUGGESTIONS = [
 function TypingIndicator() {
   return (
     <div className="message fade-in">
-      <div className="message-avatar ai">⚡</div>
+      <div className="message-avatar ai"><Bot size={15} strokeWidth={2} /></div>
       <div className="typing-indicator">
         <span className="typing-dot" />
         <span className="typing-dot" />
@@ -46,7 +46,7 @@ function MessageBubble({ msg }) {
       animate={{ opacity: 1, y: 0 }}
     >
       <div className={`message-avatar ${msg.role}`}>
-        {msg.role === 'ai' ? '⚡' : '👤'}
+        {msg.role === 'ai' ? <Bot size={15} strokeWidth={2} /> : <User2 size={14} strokeWidth={2} />}
       </div>
       <div className="message-content">
         <div className={`message-bubble ${msg.role} ${msg.streaming ? 'streaming' : ''}`}>
@@ -180,7 +180,7 @@ export default function ChatPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('contexa_token') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('doclib_token') || ''}`,
         },
         body: JSON.stringify({ question, filters, history, rewrite: false }),
       })
@@ -248,7 +248,7 @@ export default function ChatPage() {
       <div className="chat-main">
         <div className="chat-header">
           <div className="chat-header-left">
-            <div className="chat-header-icon">⚡</div>
+            <div className="chat-header-icon"><Zap size={16} strokeWidth={2.5} /></div>
             <div>
               <div className="chat-title">Document Chat</div>
               <div className="chat-subtitle">Ask anything about your uploaded documents</div>
@@ -266,10 +266,7 @@ export default function ChatPage() {
                 {activeSources.length} source{activeSources.length !== 1 ? 's' : ''}
               </button>
             )}
-            <div className="chat-header-badge">
-              <span className="dot" />
-              AI Ready
-            </div>
+
           </div>
         </div>
 
@@ -277,8 +274,8 @@ export default function ChatPage() {
           <div className="chat-messages">
             {messages.length === 0 && (
               <div className="chat-welcome">
-                <div className="welcome-icon">⚡</div>
-                <h1 className="welcome-title">Ask Contexa</h1>
+                <div className="welcome-icon"><Bot size={40} strokeWidth={1.5} /></div>
+                <h1 className="welcome-title">Ask DocLib</h1>
                 <p className="welcome-subtitle">
                   Upload documents in the Library, then ask questions. I'll find the most relevant information and cite my sources.
                 </p>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
+import { MessageCircle, FileText, Zap, ThumbsUp, Layers, TrendingUp } from 'lucide-react'
 import api from '../services/api.js'
 import '../styles/pages.css'
 
@@ -20,12 +21,12 @@ export default function AnalyticsPage() {
 
   const metrics = summary
     ? [
-        { label: 'Total Queries',     value: summary.queries.total,                                                                                                       icon: '💬', bg: 'rgba(124,58,237,0.15)' },
-        { label: 'Documents Ready',   value: `${summary.documents.ready}/${summary.documents.total}`,                                                                     icon: '📄', bg: 'rgba(59,130,246,0.15)' },
-        { label: 'Avg Latency',       value: `${summary.queries.avgLatency}ms`,                                                                                           icon: '⚡', bg: 'rgba(245,158,11,0.15)' },
-        { label: 'Positive Feedback', value: summary.queries.positive,                                                                                                    icon: '👍', bg: 'rgba(16,185,129,0.15)' },
-        { label: 'Total Chunks',      value: summary.documents.totalChunks,                                                                                               icon: '🧩', bg: 'rgba(6,182,212,0.15)'  },
-        { label: 'Satisfaction Rate', value: summary.queries.total > 0 ? `${Math.round(summary.queries.positive / summary.queries.total * 100)}%` : 'N/A',               icon: '📈', bg: 'rgba(239,68,68,0.15)'  },
+        { label: 'Total Queries',     value: summary.queries.total,                                                                                                       Icon: MessageCircle, bg: 'rgba(124,58,237,0.15)', color: '#a78bfa' },
+        { label: 'Documents Ready',   value: `${summary.documents.ready}/${summary.documents.total}`,                                                                     Icon: FileText,      bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa' },
+        { label: 'Avg Latency',       value: `${summary.queries.avgLatency}ms`,                                                                                           Icon: Zap,           bg: 'rgba(245,158,11,0.15)',  color: '#fbbf24' },
+        { label: 'Positive Feedback', value: summary.queries.positive,                                                                                                    Icon: ThumbsUp,      bg: 'rgba(16,185,129,0.15)',  color: '#34d399' },
+        { label: 'Total Chunks',      value: summary.documents.totalChunks,                                                                                               Icon: Layers,        bg: 'rgba(6,182,212,0.15)',   color: '#22d3ee'  },
+        { label: 'Satisfaction Rate', value: summary.queries.total > 0 ? `${Math.round(summary.queries.positive / summary.queries.total * 100)}%` : 'N/A',               Icon: TrendingUp,    bg: 'rgba(239,68,68,0.15)',   color: '#f87171'  },
       ]
     : []
 
@@ -62,8 +63,8 @@ export default function AnalyticsPage() {
             <div className="analytics-grid">
               {metrics.map((m) => (
                 <div key={m.label} className="metric-card">
-                  <div className="metric-icon" style={{ background: m.bg }}>
-                    <span style={{ fontSize: 20 }}>{m.icon}</span>
+                  <div className="metric-icon" style={{ background: m.bg, color: m.color }}>
+                    <m.Icon size={20} strokeWidth={1.8} />
                   </div>
                   <div className="metric-value">{m.value}</div>
                   <div className="metric-label">{m.label}</div>

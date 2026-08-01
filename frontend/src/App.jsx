@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useAppStore } from './store/useAppStore.js'
 import Sidebar from './components/Sidebar.jsx'
 import ChatPage from './pages/ChatPage.jsx'
@@ -7,6 +7,7 @@ import AnalyticsPage from './pages/AnalyticsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import ToastContainer from './components/ToastContainer.jsx'
+import ThemeToggle from './components/ThemeToggle.jsx'
 import './styles/global.css'
 import './styles/sidebar.css'
 
@@ -18,9 +19,19 @@ const PAGES = {
 }
 
 export default function App() {
-  const { user, currentPage } = useAppStore()
+  const { user, currentPage, theme } = useAppStore()
 
-  if (!user) return <AuthPage />
+  // Apply saved theme on first render
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  if (!user) return (
+    <>
+      <ThemeToggle />
+      <AuthPage />
+    </>
+  )
 
   const Page = PAGES[currentPage] || ChatPage
 
@@ -29,6 +40,7 @@ export default function App() {
       <div className="app-layout">
         <Sidebar />
         <div className="main-content">
+          <ThemeToggle />
           <Page />
         </div>
       </div>

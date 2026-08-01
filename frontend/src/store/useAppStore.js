@@ -5,16 +5,16 @@ export const useAppStore = create(
   persist(
     (set) => ({
       // Auth
-      user: JSON.parse(localStorage.getItem('contexa_user') || 'null'),
-      token: localStorage.getItem('contexa_token'),
+      user: JSON.parse(localStorage.getItem('doclib_user') || 'null'),
+      token: localStorage.getItem('doclib_token'),
       setAuth: (user, token) => {
-        localStorage.setItem('contexa_token', token)
-        localStorage.setItem('contexa_user', JSON.stringify(user))
+        localStorage.setItem('doclib_token', token)
+        localStorage.setItem('doclib_user', JSON.stringify(user))
         set({ user, token })
       },
       logout: () => {
-        localStorage.removeItem('contexa_token')
-        localStorage.removeItem('contexa_user')
+        localStorage.removeItem('doclib_token')
+        localStorage.removeItem('doclib_user')
         // Clear persisted chat state on logout
         set({ user: null, token: null, messages: [], activeSources: [] })
       },
@@ -59,6 +59,13 @@ export const useAppStore = create(
       // UI
       currentPage: 'chat',
       setCurrentPage: (page) => set({ currentPage: page }),
+      theme: localStorage.getItem('doclib_theme') || 'dark',
+      toggleTheme: () => set((s) => {
+        const next = s.theme === 'dark' ? 'light' : 'dark'
+        localStorage.setItem('doclib_theme', next)
+        document.documentElement.setAttribute('data-theme', next)
+        return { theme: next }
+      }),
       toasts: [],
       addToast: (toast) =>
         set((s) => {
@@ -69,11 +76,12 @@ export const useAppStore = create(
       removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
     }),
     {
-      name: 'contexa-chat',
+      name: 'doclib-chat',
       // Only persist chat messages and sources — documents are always re-fetched from server
       partialize: (state) => ({
-        messages: state.messages.filter((m) => !m.streaming), // never persist mid-stream messages
+        messages: state.messages.filter((m) => !m.streaming),
         activeSources: state.activeSources,
+        theme: state.theme,
       }),
     }
   )

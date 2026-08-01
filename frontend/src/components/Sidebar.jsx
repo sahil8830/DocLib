@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquare, BookOpen, BarChart2, Settings } from 'lucide-react'
+import { MessageSquare, BookOpen, BarChart2, Settings, LogOut, Zap } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore.js'
 import '../styles/sidebar.css'
 
@@ -11,16 +11,16 @@ const navItems = [
 ]
 
 export default function Sidebar() {
-  const { currentPage, setCurrentPage } = useAppStore()
+  const { currentPage, setCurrentPage, user, logout } = useAppStore()
 
   return (
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-mark">
-          <div className="logo-icon">⚡</div>
+          <div className="logo-icon"><Zap size={18} strokeWidth={2.5} /></div>
           <div>
-            <div className="logo-text">Contexa</div>
+            <div className="logo-text">DocLib</div>
             <div className="logo-tagline">AI Document Q&A</div>
           </div>
         </div>
@@ -44,10 +44,26 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <div className="ai-status">
-          <span className="status-dot" />
-          AI Service Online
-        </div>
+        {/* User info + logout */}
+        {user && (
+          <div className="sidebar-user">
+            <div className="user-avatar">
+              {(user.name || user.email || '?')[0].toUpperCase()}
+            </div>
+            <div className="user-info">
+              <div className="user-name">{user.name || 'User'}</div>
+              <div className="user-email">{user.email}</div>
+            </div>
+            <button
+              id="btn-logout"
+              className="logout-btn"
+              onClick={logout}
+              title="Sign out"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )

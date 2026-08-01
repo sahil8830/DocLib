@@ -45,19 +45,11 @@ Rewritten question:"""
 
 class BaseLLMService(ABC):
     @abstractmethod
-<<<<<<< Updated upstream
-    async def generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = None) -> str:
-        pass
-
-    @abstractmethod
-    async def stream_generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = None) -> AsyncGenerator[str, None]:
-=======
     async def generate(self, question: str, context_chunks: List[Dict], history: List[Dict]) -> str:
         pass
 
     @abstractmethod
     async def stream_generate(self, question: str, context_chunks: List[Dict], history: List[Dict]) -> AsyncGenerator[str, None]:
->>>>>>> Stashed changes
         pass
 
     @abstractmethod
@@ -85,48 +77,11 @@ class GeminiLLMService(BaseLLMService):
             parts.append(f"[Chunk {i+1} — {source}{page_str}]\n{chunk['content']}")
         return "\n\n---\n\n".join(parts)
 
-<<<<<<< Updated upstream
-    async def generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = None) -> str:
-        if not context_chunks:
-            return "I couldn't find relevant information in the uploaded documents to answer your question."
-        context = self._build_context(context_chunks)
-        current_prompt = SYSTEM_PROMPT.format(context=context, question=question)
-
-        # Build multi-turn contents list
-        contents = self._build_contents(history, current_prompt)
-
-=======
-    def _build_contents(self, question: str, context: str, history: List[Dict]) -> List[genai_types.Content]:
-        """Build a multi-turn contents list for the Gemini API.
-
-        Prior turns are interleaved as user/model roles.
-        The final user turn contains the retrieved context + current question.
-        """
-        contents = []
-        for turn in history:
-            role = turn.get("role", "user")  # "user" or "model"
-            contents.append(
-                genai_types.Content(
-                    role=role,
-                    parts=[genai_types.Part(text=turn["content"])],
-                )
-            )
-        # Final user turn: embed the retrieved context
-        final_prompt = SYSTEM_PROMPT.format(context=context, question=question)
-        contents.append(
-            genai_types.Content(
-                role="user",
-                parts=[genai_types.Part(text=final_prompt)],
-            )
-        )
-        return contents
-
     async def generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = []) -> str:
         if not context_chunks:
             return "I couldn't find relevant information in the uploaded documents to answer your question."
         context = self._build_context(context_chunks)
         contents = self._build_contents(question, context, history)
->>>>>>> Stashed changes
         response = await _client.aio.models.generate_content(
             model=self.model_name,
             contents=contents,
@@ -134,21 +89,12 @@ class GeminiLLMService(BaseLLMService):
         )
         return response.text
 
-<<<<<<< Updated upstream
-    async def stream_generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = None) -> AsyncGenerator[str, None]:
-=======
     async def stream_generate(self, question: str, context_chunks: List[Dict], history: List[Dict] = []) -> AsyncGenerator[str, None]:
->>>>>>> Stashed changes
         if not context_chunks:
             yield "I couldn't find relevant information in the uploaded documents to answer your question."
             return
         context = self._build_context(context_chunks)
-<<<<<<< Updated upstream
-        current_prompt = SYSTEM_PROMPT.format(context=context, question=question)
-        contents = self._build_contents(history, current_prompt)
-=======
         contents = self._build_contents(question, context, history)
->>>>>>> Stashed changes
         async for chunk in await _client.aio.models.generate_content_stream(
             model=self.model_name,
             contents=contents,
@@ -157,15 +103,15 @@ class GeminiLLMService(BaseLLMService):
             if chunk.text:
                 yield chunk.text
 
-    def _build_contents(self, history: List[Dict], current_prompt: str) -> list:
+    def _build_contents(self, question: str, context: str, history: List[Dict]) -> list:
         """Build a multi-turn contents list for the Gemini API."""
         contents = []
-        if history:
-            for turn in history[:-1]:  # all but the last (current question is in current_prompt)
-                role = "user" if turn["role"] == "user" else "model"
-                contents.append({"role": role, "parts": [{"text": turn["content"]}]})
+        for turn in (history or []):
+            role = "user" if turn.get("role") == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": turn["content"]}]})
         # Final turn: inject retrieved context into the question
-        contents.append({"role": "user", "parts": [{"text": current_prompt}]})
+        final_prompt = SYSTEM_PROMPT.format(context=context, question=question)
+        contents.append({"role": "user", "parts": [{"text": final_prompt}]})
         return contents
 
     async def rewrite_query(self, question: str) -> str:

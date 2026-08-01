@@ -6,7 +6,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('contexa_token')
+  const token = localStorage.getItem('doclib_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -15,8 +15,8 @@ api.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('contexa_token')
-      localStorage.removeItem('contexa_user')
+      localStorage.removeItem('doclib_token')
+      localStorage.removeItem('doclib_user')
       window.location.href = '/login'
     }
     return Promise.reject(err)

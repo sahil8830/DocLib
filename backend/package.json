@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Contexa RAG — Express.js API Gateway",
+  "description": "DocLib RAG — Express.js API Gateway",
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
@@ -20,8 +20,10 @@
     "express-rate-limit": "^8.6.1",
     "js-yaml": "^5.2.2",
     "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.1",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.3",
     "uuid": "^14.0.1",
     "ws": "^8.21.1"
   },

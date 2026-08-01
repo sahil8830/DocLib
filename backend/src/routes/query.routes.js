@@ -18,13 +18,9 @@ router.post('/', queryRateLimiter, async (req, res) => {
   const queryId = uuidv4()
   const startTime = Date.now()
   try {
-<<<<<<< Updated upstream
     const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, history, stream: false })
-=======
-    const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, stream: false, history })
->>>>>>> Stashed changes
     const latencyMs = Date.now() - startTime
-    analyticsStore.addQuery({
+    await analyticsStore.addQuery({
       id: queryId,
       question,
       timestamp: new Date().toISOString(),
@@ -60,11 +56,7 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
   try {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/query/stream`,
-<<<<<<< Updated upstream
       { question, filters, rewrite, history, stream: true },
-=======
-      { question, filters, rewrite, stream: true, history },
->>>>>>> Stashed changes
       { responseType: 'stream' }
     )
 
@@ -72,9 +64,9 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
       res.write(chunk.toString())
     })
 
-    aiResponse.data.on('end', () => {
+    aiResponse.data.on('end', async () => {
       const latencyMs = Date.now() - startTime
-      analyticsStore.addQuery({
+      await analyticsStore.addQuery({
         id: queryId,
         question,
         timestamp: new Date().toISOString(),
@@ -105,7 +97,8 @@ router.post('/:queryId/feedback', (req, res) => {
     return
   }
   analyticsStore.updateFeedback(String(req.params.queryId), feedback)
-  res.json({ status: 'ok' })
+    .then(() => res.json({ status: 'ok' }))
+    .catch((err) => res.status(500).json({ error: err.message }))
 })
 
 module.exports = router

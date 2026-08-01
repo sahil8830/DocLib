@@ -27,7 +27,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     filePath: req.file.path,
   }
 
-  documentStore.add(record)
+  await documentStore.add(record)
 
   // Respond immediately, process async
   res.status(202).json({
@@ -40,22 +40,23 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   // Process asynchronously
   try {
     const result = await aiService.ingestDocument(req.file.path, documentId, req.file.originalname)
-    documentStore.update(documentId, { status: 'ready', chunks: result.chunks_created })
+    await documentStore.update(documentId, { status: 'ready', chunks: result.chunks_created })
     console.log(`✅ Document ready: ${req.file.originalname} (${result.chunks_created} chunks)`)
   } catch (err) {
-    documentStore.update(documentId, { status: 'failed' })
+    await documentStore.update(documentId, { status: 'failed' })
     console.error(`❌ Ingestion failed: ${err.message}`)
   }
 })
 
 // List all documents
-router.get('/', (_req, res) => {
-  res.json({ documents: documentStore.list() })
+router.get('/', async (_req, res) => {
+  const documents = await documentStore.list()
+  res.json({ documents })
 })
 
 // Get document status
-router.get('/:id/status', (req, res) => {
-  const doc = documentStore.get(String(req.params.id))
+router.get('/:id/status', async (req, res) => {
+  const doc = await documentStore.get(String(req.params.id))
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })
     return
@@ -66,7 +67,7 @@ router.get('/:id/status', (req, res) => {
 // Delete a document
 router.delete('/:id', async (req, res) => {
   const docId = String(req.params.id)
-  const doc = documentStore.get(docId)
+  const doc = await documentStore.get(docId)
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })
     return
@@ -74,7 +75,7 @@ router.delete('/:id', async (req, res) => {
   try {
     await aiService.deleteDocument(docId)
     if (fs.existsSync(doc.filePath)) fs.unlinkSync(doc.filePath)
-    documentStore.delete(docId)
+    await documentStore.delete(docId)
     res.json({ status: 'deleted', id: docId })
   } catch (err) {
     res.status(500).json({ error: err.message })

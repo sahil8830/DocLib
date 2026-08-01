@@ -6,13 +6,16 @@ const router = Router()
 
 router.get('/summary', async (_req, res) => {
   try {
-    const querySummary = analyticsStore.getSummary()
-    const aiStats = await aiService.getStats().catch(() => ({ total_chunks: 0, total_documents: 0 }))
+    const [querySummary, allDocs, aiStats] = await Promise.all([
+      analyticsStore.getSummary(),
+      documentStore.list(),
+      aiService.getStats().catch(() => ({ total_chunks: 0, total_documents: 0 })),
+    ])
     res.json({
       queries: querySummary,
       documents: {
-        total: documentStore.list().length,
-        ready: documentStore.list().filter((d) => d.status === 'ready').length,
+        total: allDocs.length,
+        ready: allDocs.filter((d) => d.status === 'ready').length,
         totalChunks: aiStats.total_chunks,
       },
     })
@@ -21,8 +24,13 @@ router.get('/summary', async (_req, res) => {
   }
 })
 
-router.get('/queries', (_req, res) => {
-  res.json({ queries: analyticsStore.getAll() })
+router.get('/queries', async (_req, res) => {
+  try {
+    const queries = await analyticsStore.getAll()
+    res.json({ queries })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 module.exports = router
