@@ -18,6 +18,9 @@ const { rateLimiter } = require('./middleware/rateLimiter')
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Trust Nginx reverse proxy (fixes express-rate-limit X-Forwarded-For warning)
+app.set('trust proxy', 1)
+
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../uploads')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
