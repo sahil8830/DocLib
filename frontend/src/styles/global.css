@@ -343,3 +343,167 @@ body::after {
 .toast-success { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
 .toast-error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: #f87171; }
 .toast-info    { background: rgba(37,99,235,0.12);  border: 1px solid rgba(37,99,235,0.3);  color: #60a5fa; }
+
+/* ════════════════════════════════════════════════════════════
+   LIGHT MODE — Component Overrides
+   Fixes hardcoded rgba dark values throughout the app
+   ════════════════════════════════════════════════════════════ */
+
+/* ── body & ambient orbs ─────────────────────────────────── */
+[data-theme='light'] body { background: #f4f4f8; }
+[data-theme='light'] body::before,
+[data-theme='light'] body::after { opacity: 0.4; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+[data-theme='light'] .nav-item:hover {
+  background: rgba(109,40,217,0.07);
+}
+[data-theme='light'] .nav-item.active {
+  background: linear-gradient(135deg, rgba(109,40,217,0.12) 0%, rgba(37,99,235,0.08) 100%);
+  border-color: rgba(109,40,217,0.25);
+}
+[data-theme='light'] .sidebar-user {
+  background: rgba(109,40,217,0.05);
+}
+[data-theme='light'] .logout-btn:hover {
+  background: rgba(239,68,68,0.08);
+}
+
+/* ── Chat header ─────────────────────────────────────────── */
+[data-theme='light'] .chat-header {
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+}
+
+/* ── Chat input area ─────────────────────────────────────── */
+[data-theme='light'] .chat-input-area {
+  background: rgba(244,244,248,0.95);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+[data-theme='light'] .chat-input-wrapper {
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* ── Suggestion chips ────────────────────────────────────── */
+[data-theme='light'] .suggestion-chip {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.1);
+  color: #5a5a78;
+}
+[data-theme='light'] .suggestion-chip:hover {
+  background: rgba(109,40,217,0.07);
+  border-color: rgba(109,40,217,0.3);
+}
+
+/* ── Doc filter chips ────────────────────────────────────── */
+[data-theme='light'] .doc-chip {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme='light'] .doc-chip:hover {
+  border-color: rgba(109,40,217,0.3);
+  background: rgba(109,40,217,0.05);
+}
+[data-theme='light'] .doc-chip.active {
+  background: rgba(109,40,217,0.1);
+}
+
+/* ── Sources toggle button ───────────────────────────────── */
+[data-theme='light'] .sources-toggle-btn {
+  background: rgba(109,40,217,0.07);
+  border-color: rgba(109,40,217,0.2);
+}
+[data-theme='light'] .sources-toggle-btn:hover,
+[data-theme='light'] .sources-toggle-btn.active {
+  background: rgba(109,40,217,0.14);
+}
+
+/* ── Markdown in light mode ──────────────────────────────── */
+[data-theme='light'] .markdown-body h1,
+[data-theme='light'] .markdown-body h2,
+[data-theme='light'] .markdown-body strong {
+  color: #0f0f1a;
+}
+[data-theme='light'] .markdown-body pre {
+  background: #f0f0f7;
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme='light'] .markdown-body pre code {
+  color: #0f0f1a;
+}
+[data-theme='light'] .markdown-body code {
+  background: rgba(109,40,217,0.08);
+  border-color: rgba(109,40,217,0.18);
+}
+[data-theme='light'] .markdown-body blockquote {
+  background: rgba(109,40,217,0.05);
+}
+[data-theme='light'] .markdown-body th {
+  background: rgba(109,40,217,0.08);
+}
+[data-theme='light'] .markdown-body tr:nth-child(even) td {
+  background: rgba(0,0,0,0.02);
+}
+
+/* ── Library drop zone ───────────────────────────────────── */
+[data-theme='light'] .drop-zone {
+  background: linear-gradient(135deg, rgba(109,40,217,0.03) 0%, rgba(37,99,235,0.03) 100%);
+  border-color: rgba(109,40,217,0.22);
+}
+[data-theme='light'] .drop-icon {
+  background: rgba(109,40,217,0.08);
+  border-color: rgba(109,40,217,0.2);
+}
+
+/* ── Analytics / metric cards ───────────────────────────── */
+[data-theme='light'] .metric-card {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+[data-theme='light'] .chart-card {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+/* ── Settings cards ──────────────────────────────────────── */
+[data-theme='light'] .settings-card {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme='light'] .settings-input,
+[data-theme='light'] .settings-select {
+  background: #f8f8fc;
+  border-color: rgba(0,0,0,0.12);
+  color: #0f0f1a;
+}
+[data-theme='light'] .settings-input:focus,
+[data-theme='light'] .settings-select:focus {
+  border-color: rgba(109,40,217,0.5);
+  background: #ffffff;
+}
+
+/* ── Document cards in library ───────────────────────────── */
+[data-theme='light'] .doc-card {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+[data-theme='light'] .doc-card:hover {
+  border-color: rgba(109,40,217,0.25);
+  box-shadow: 0 4px 20px rgba(109,40,217,0.1);
+}
+
+/* ── Toasts in light mode ────────────────────────────────── */
+[data-theme='light'] .toast {
+  background: #ffffff;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+
+/* ── Skeleton loaders ────────────────────────────────────── */
+[data-theme='light'] .skeleton {
+  background: linear-gradient(90deg, #e8e8f0 25%, #f4f4f8 50%, #e8e8f0 75%);
+  background-size: 200% 100%;
+}
