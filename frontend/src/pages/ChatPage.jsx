@@ -13,18 +13,6 @@ const SUGGESTIONS = [
   'List all important dates mentioned',
 ]
 
-function TypingIndicator() {
-  return (
-    <div className="message fade-in">
-      <div className="message-avatar ai"><Bot size={15} strokeWidth={2} /></div>
-      <div className="typing-indicator">
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-      </div>
-    </div>
-  )
-}
 
 function MessageBubble({ msg }) {
   const { setFeedback } = useAppStore()
@@ -51,9 +39,17 @@ function MessageBubble({ msg }) {
       <div className="message-content">
         <div className={`message-bubble ${msg.role} ${msg.streaming ? 'streaming' : ''}`}>
           {msg.role === 'ai' ? (
-            <div className="markdown-body">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
+            msg.streaming && !msg.content ? (
+              <div className="typing-indicator">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </div>
+            ) : (
+              <div className="markdown-body">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
+            )
           ) : (
             <span>{msg.content}</span>
           )}
@@ -353,7 +349,6 @@ export default function ChatPage() {
               {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
             </AnimatePresence>
 
-            {isStreaming && messages[messages.length - 1]?.content === '' && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
 
