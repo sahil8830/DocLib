@@ -123,7 +123,7 @@ export default function AuthPage() {
           {/* ── Verifying ─────────────────────────────────────────── */}
           {isVerify && (
             <div className="al-form-area al-center">
-              <Loader2 size={36} className="al-spin al-spin-purple" />
+              <Loader2 size={36} className="al-spin" />
               <p className="al-sub" style={{ marginTop: 16 }}>Verifying your email…</p>
             </div>
           )}
@@ -243,9 +243,9 @@ function AnimatedPanel() {
   ]
 
   const DOCS = [
-    { name: 'Q3 Financial Report.pdf',   pages: 42,  color: '#7c3aed' },
-    { name: 'Product Roadmap 2026.docx', pages: 18,  color: '#3b82f6' },
-    { name: 'Legal Contract Draft.pdf',  pages: 67,  color: '#06b6d4' },
+    { name: 'Q3 Financial Report.pdf',   pages: 42 },
+    { name: 'Product Roadmap 2026.docx', pages: 18 },
+    { name: 'Legal Contract Draft.pdf',  pages: 67 },
   ]
 
   return (
@@ -266,8 +266,8 @@ function AnimatedPanel() {
         <div className="ap-docs">
           {DOCS.map((d, i) => (
             <div key={d.name} className="ap-doc-pill" style={{ animationDelay: `${i * 0.15}s` }}>
-              <div className="ap-doc-icon" style={{ background: `${d.color}22`, color: d.color }}>
-                <FileText size={14} strokeWidth={1.8} />
+              <div className="ap-doc-icon">
+                <FileText size={13} strokeWidth={1.8} />
               </div>
               <span className="ap-doc-name">{d.name}</span>
               <span className="ap-doc-pages">{d.pages}p</span>
