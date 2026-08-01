@@ -1,10 +1,11 @@
 import React from 'react'
-import { MessageSquare, BookOpen, BarChart2, Settings, LogOut, Zap } from 'lucide-react'
+import { MessageSquare, BookOpen, BarChart2, Settings, LogOut, Zap, Clock } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore.js'
 import '../styles/sidebar.css'
 
 const navItems = [
   { id: 'chat',       label: 'Chat',       icon: MessageSquare },
+  { id: 'history',   label: 'History',    icon: Clock         },
   { id: 'library',   label: 'Library',    icon: BookOpen      },
   { id: 'analytics', label: 'Analytics',  icon: BarChart2     },
   { id: 'settings',  label: 'Settings',   icon: Settings      },

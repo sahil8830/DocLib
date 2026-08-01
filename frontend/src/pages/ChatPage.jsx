@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, ChevronDown, Zap, Bot, User2 } from 'lucide-react'
+import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, Zap, Bot, User2, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
@@ -122,26 +122,31 @@ function SourcesPanel({ sources, onClose }) {
 
 export default function ChatPage() {
   const {
-    messages, isStreaming, activeSources, documents,
+    messages, isStreaming, activeSources, documents, activeConversationId,
     addMessage, updateLastMessage, setActiveSources, setStreaming, setLastMessageQueryId,
+    setActiveConversationId, newChat,
   } = useAppStore()
 
   const [input, setInput] = useState('')
   const [showSources, setShowSources] = useState(false)
-  const [filterDocId, setFilterDocId] = useState(null) // null = all docs
+  const [filterDocId, setFilterDocId] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+  // Track current conversation ID within this render session
+  const conversationIdRef = useRef(activeConversationId)
+
+  useEffect(() => {
+    conversationIdRef.current = activeConversationId
+  }, [activeConversationId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Auto-show sources panel when new sources arrive
   useEffect(() => {
     if (activeSources.length > 0) setShowSources(true)
   }, [activeSources])
 
-  // Build history from last 6 completed message pairs
   const buildHistory = useCallback(() => {
     return messages
       .filter((m) => !m.streaming && m.content)
@@ -153,11 +158,13 @@ export default function ChatPage() {
     if (!question.trim() || isStreaming) return
     setInput('')
 
+    const now = new Date().toISOString()
+
     const userMsg = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: question,
-      timestamp: new Date().toISOString(),
+      timestamp: now,
     }
     addMessage(userMsg)
     setStreaming(true)
@@ -166,14 +173,36 @@ export default function ChatPage() {
       id: `ai-${Date.now()}`,
       role: 'ai',
       content: '',
-      timestamp: new Date().toISOString(),
+      timestamp: now,
       streaming: true,
     }
     addMessage(aiMsg)
     setActiveSources([])
 
+    // ── Create conversation on first message of a session ──
+    let convId = conversationIdRef.current
+    if (!convId) {
+      try {
+        const token = localStorage.getItem('doclib_token') || ''
+        const res = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ title: question, messages: [] }),
+        })
+        const data = await res.json()
+        convId = data.id
+        conversationIdRef.current = convId
+        setActiveConversationId(convId)
+      } catch (err) {
+        console.error('Failed to create conversation:', err)
+      }
+    }
+
     const filters = filterDocId ? { document_id: filterDocId } : undefined
     const history = buildHistory()
+
+    let fullText = ''
+    let aiTimestamp = new Date().toISOString()
 
     try {
       const response = await fetch('/api/query/stream', {
@@ -187,7 +216,6 @@ export default function ChatPage() {
 
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
-      let fullText = ''
       let buffer = ''
 
       while (reader) {
@@ -218,13 +246,32 @@ export default function ChatPage() {
       }
 
       updateLastMessage(fullText, false)
+
+      // ── Append Q&A pair to conversation in MongoDB ────────
+      if (convId && fullText) {
+        try {
+          const token = localStorage.getItem('doclib_token') || ''
+          await fetch(`/api/conversations/${convId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              messages: [
+                { role: 'user', content: question, timestamp: now },
+                { role: 'ai',   content: fullText,  timestamp: aiTimestamp },
+              ],
+            }),
+          })
+        } catch (err) {
+          console.error('Failed to save conversation messages:', err)
+        }
+      }
     } catch (err) {
       console.error('handleSend stream failed:', err)
       updateLastMessage('Sorry, something went wrong. Please try again.', false)
     } finally {
       setStreaming(false)
     }
-  }, [isStreaming, filterDocId, buildHistory, addMessage, updateLastMessage, setActiveSources, setStreaming, setLastMessageQueryId])
+  }, [isStreaming, filterDocId, buildHistory, addMessage, updateLastMessage, setActiveSources, setStreaming, setLastMessageQueryId, setActiveConversationId])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -239,6 +286,13 @@ export default function ChatPage() {
       el.style.height = 'auto'
       el.style.height = `${Math.min(el.scrollHeight, 120)}px`
     }
+  }
+
+  const handleNewChat = () => {
+    newChat()
+    conversationIdRef.current = null
+    setFilterDocId(null)
+    setShowSources(false)
   }
 
   const readyDocs = documents.filter((d) => d.status === 'ready')
@@ -266,7 +320,15 @@ export default function ChatPage() {
                 {activeSources.length} source{activeSources.length !== 1 ? 's' : ''}
               </button>
             )}
-
+            <button
+              id="new-chat-btn"
+              className="new-chat-btn"
+              onClick={handleNewChat}
+              title="Start a new conversation"
+            >
+              <Plus size={14} />
+              New Chat
+            </button>
           </div>
         </div>
 
@@ -303,7 +365,6 @@ export default function ChatPage() {
         </div>
 
         <div className="chat-input-area">
-          {/* Document filter chips */}
           {readyDocs.length > 0 && (
             <div className="doc-filter-chips">
               <button

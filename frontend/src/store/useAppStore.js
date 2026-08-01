@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 export const useAppStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Auth
       user: JSON.parse(localStorage.getItem('doclib_user') || 'null'),
       token: localStorage.getItem('doclib_token'),
@@ -15,14 +15,15 @@ export const useAppStore = create(
       logout: () => {
         localStorage.removeItem('doclib_token')
         localStorage.removeItem('doclib_user')
-        // Clear persisted chat state on logout
-        set({ user: null, token: null, messages: [], activeSources: [] })
+        set({ user: null, token: null, messages: [], activeSources: [], activeConversationId: null })
       },
 
-      // Chat
+      // ── Chat ───────────────────────────────────────────────
       messages: [],
       isStreaming: false,
       activeSources: [],
+      activeConversationId: null,       // ID of the current conversation in MongoDB
+
       addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
       updateLastMessage: (content, streaming) =>
         set((s) => {
@@ -48,7 +49,29 @@ export const useAppStore = create(
           messages: s.messages.map((m) => (m.id === id ? { ...m, feedback } : m)),
         })),
 
-      // Documents
+      // Set the active conversation ID (called when a new conversation is created)
+      setActiveConversationId: (id) => set({ activeConversationId: id }),
+
+      // Start a brand-new chat session (clears messages + conversation ID)
+      newChat: () => set({ messages: [], activeSources: [], activeConversationId: null }),
+
+      // Load a past conversation back into the chat (for "Continue" from History)
+      loadConversation: (conversation) => {
+        const messages = conversation.messages.map((m, i) => ({
+          id: `${m.role}-${i}-${Date.now()}`,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+          streaming: false,
+        }))
+        set({
+          messages,
+          activeSources: [],
+          activeConversationId: conversation.id,
+        })
+      },
+
+      // ── Documents ─────────────────────────────────────────
       documents: [],
       setDocuments: (docs) => set({ documents: docs }),
       addDocument: (doc) => set((s) => ({ documents: [doc, ...s.documents] })),
@@ -56,7 +79,7 @@ export const useAppStore = create(
         set((s) => ({ documents: s.documents.map((d) => (d.id === id ? { ...d, ...updates } : d)) })),
       removeDocument: (id) => set((s) => ({ documents: s.documents.filter((d) => d.id !== id) })),
 
-      // UI
+      // ── UI ────────────────────────────────────────────────
       currentPage: 'chat',
       setCurrentPage: (page) => set({ currentPage: page }),
       theme: localStorage.getItem('doclib_theme') || 'dark',
@@ -77,13 +100,12 @@ export const useAppStore = create(
     }),
     {
       name: 'doclib-chat',
-      // Only persist chat messages and sources — documents are always re-fetched from server
       partialize: (state) => ({
         messages: state.messages.filter((m) => !m.streaming),
         activeSources: state.activeSources,
+        activeConversationId: state.activeConversationId,
         theme: state.theme,
       }),
     }
   )
 )
-

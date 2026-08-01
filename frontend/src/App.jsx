@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage.jsx'
 import LibraryPage from './pages/LibraryPage.jsx'
 import AnalyticsPage from './pages/AnalyticsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
+import HistoryPage from './pages/HistoryPage.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import ToastContainer from './components/ToastContainer.jsx'
 import ThemeToggle from './components/ThemeToggle.jsx'
@@ -13,6 +14,7 @@ import './styles/sidebar.css'
 
 const PAGES = {
   chat: ChatPage,
+  history: HistoryPage,
   library: LibraryPage,
   analytics: AnalyticsPage,
   settings: SettingsPage,

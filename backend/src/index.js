@@ -12,6 +12,7 @@ const documentsRoutes = require('./routes/documents.routes')
 const queryRoutes = require('./routes/query.routes')
 const analyticsRoutes = require('./routes/analytics.routes')
 const settingsRoutes = require('./routes/settings.routes')
+const conversationsRoutes = require('./routes/conversations.routes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { rateLimiter } = require('./middleware/rateLimiter')
 
@@ -40,6 +41,7 @@ app.use('/api/documents', documentsRoutes)
 app.use('/api/query', queryRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/settings', settingsRoutes)
+app.use('/api/conversations', conversationsRoutes)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'healthy', service: 'DocLib Backend', timestamp: new Date().toISOString() })
