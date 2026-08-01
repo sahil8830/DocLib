@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ThumbsUp, ThumbsDown, BookOpen, X, FileText, Zap, Bot, User2, Plus } from 'lucide-react'
+import { ArrowUp, ThumbsUp, ThumbsDown, BookOpen, X, FileText, Zap, Bot, User2, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
@@ -405,7 +405,7 @@ export default function ChatPage() {
             >
               {isStreaming
                 ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                : <Send size={18} color="#fff" />
+                : <ArrowUp size={16} strokeWidth={2.5} />
               }
             </button>
           </div>
