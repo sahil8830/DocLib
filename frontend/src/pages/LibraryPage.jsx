@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload, Trash2, RefreshCw, FileText, AlertTriangle } from 'lucide-react'
+import { Upload, Trash2, RefreshCw, FileText, File, Code, AlertTriangle, BookOpen } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../store/useAppStore.js'
 import api from '../services/api.js'
 import '../styles/pages.css'
 
 const DOC_ICONS = {
-  pdf:  { emoji: '📄', cls: 'pdf' },
-  docx: { emoji: '📝', cls: 'docx' },
-  txt:  { emoji: '📃', cls: 'txt' },
-  md:   { emoji: '📝', cls: 'docx' },
+  pdf:  FileText,
+  docx: BookOpen,
+  txt:  File,
+  md:   Code,
 }
 
 function formatBytes(b) {
@@ -206,7 +206,7 @@ export default function LibraryPage() {
           <div className="doc-grid">
             <AnimatePresence>
               {documents.map((doc) => {
-                const iconInfo = DOC_ICONS[doc.type] || { emoji: '📁', cls: 'other' }
+                const DocIcon = DOC_ICONS[doc.type] || File
                 return (
                   <motion.div
                     key={doc.id}
@@ -217,7 +217,10 @@ export default function LibraryPage() {
                     layout
                   >
                     <div className="doc-card-header">
-                      <div className={`doc-icon ${iconInfo.cls}`}>{iconInfo.emoji}</div>
+                      <div className="doc-icon">
+                        <DocIcon size={18} strokeWidth={1.5} />
+                        <span className="doc-ext-label">{(doc.type || 'file').toUpperCase()}</span>
+                      </div>
                       <span className={`badge ${
                         doc.status === 'ready' ? 'badge-green' :
                         doc.status === 'processing' ? 'badge-orange' : 'badge-red'
