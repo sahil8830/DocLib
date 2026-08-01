@@ -16,6 +16,8 @@ const documentSchema = new mongoose.Schema(
     chunks: { type: Number, default: 0 },
     filePath: { type: String, required: true },
     userId: { type: String, default: null }, // optional user association
+    s3Key: { type: String },                // ← NEW: S3 object key
+    s3Url: { type: String },                // ← NEW: S3 public URL
   },
   {
     _id: false, // we supply our own string _id (uuid)
