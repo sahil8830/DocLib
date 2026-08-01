@@ -1,6 +1,5 @@
-// MongoDB-backed document and analytics store
-// Replaces the previous in-memory Map / array implementation.
-// The public API surface is preserved so existing routes need no changes.
+// MongoDB-backed document and analytics store — per-user isolated.
+// Every read operation is scoped to a userId so users never see each other's data.
 
 const Document = require('../models/Document')
 const Query = require('../models/Query')
@@ -15,8 +14,10 @@ class DocumentStore {
     await record.save()
   }
 
-  async get(id) {
-    const doc = await Document.findById(id)
+  async get(id, userId) {
+    const query = { _id: id }
+    if (userId) query.userId = userId          // ← scope to user
+    const doc = await Document.findOne(query)
     return doc ? doc.toJSON() : undefined
   }
 
@@ -28,8 +29,9 @@ class DocumentStore {
     await Document.findByIdAndDelete(id)
   }
 
-  async list() {
-    const docs = await Document.find().sort({ uploadedAt: -1 })
+  async list(userId) {
+    const query = userId ? { userId } : {}     // ← scope to user
+    const docs = await Document.find(query).sort({ uploadedAt: -1 })
     return docs.map((d) => d.toJSON())
   }
 }
@@ -47,13 +49,15 @@ class AnalyticsStore {
     await Query.findByIdAndUpdate(id, { $set: { feedback } })
   }
 
-  async getAll() {
-    const queries = await Query.find().sort({ timestamp: -1 })
+  async getAll(userId) {
+    const query = userId ? { userId } : {}     // ← scope to user
+    const queries = await Query.find(query).sort({ timestamp: -1 })
     return queries.map((q) => q.toJSON())
   }
 
-  async getSummary() {
-    const queries = await Query.find()
+  async getSummary(userId) {
+    const query = userId ? { userId } : {}     // ← scope to user
+    const queries = await Query.find(query)
     const total = queries.length
     const avgLatency =
       total > 0

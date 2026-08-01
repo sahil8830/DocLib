@@ -1,15 +1,20 @@
 const { Router } = require('express')
 const { analyticsStore, documentStore } = require('../services/store.service')
+const { authMiddleware } = require('../middleware/auth.middleware')
 const { aiService } = require('../services/ai.service')
 
 const router = Router()
 
-router.get('/summary', async (_req, res) => {
+// All analytics routes require authentication
+router.use(authMiddleware)
+
+router.get('/summary', async (req, res) => {
+  const userId = req.user.id                          // ← from JWT
   try {
     const [querySummary, allDocs, aiStats] = await Promise.all([
-      analyticsStore.getSummary(),
-      documentStore.list(),
-      aiService.getStats().catch(() => ({ total_chunks: 0, total_documents: 0 })),
+      analyticsStore.getSummary(userId),              // ← scoped to user
+      documentStore.list(userId),                     // ← scoped to user
+      aiService.getStats(userId).catch(() => ({ total_chunks: 0, total_documents: 0 })),
     ])
     res.json({
       queries: querySummary,
@@ -24,9 +29,10 @@ router.get('/summary', async (_req, res) => {
   }
 })
 
-router.get('/queries', async (_req, res) => {
+router.get('/queries', async (req, res) => {
+  const userId = req.user.id                          // ← from JWT
   try {
-    const queries = await analyticsStore.getAll()
+    const queries = await analyticsStore.getAll(userId)  // ← scoped to user
     res.json({ queries })
   } catch (err) {
     res.status(500).json({ error: err.message })

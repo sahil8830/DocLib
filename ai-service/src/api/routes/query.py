@@ -1,5 +1,6 @@
 """
 Query route — supports both single-shot and SSE streaming queries.
+user_id is passed as a ChromaDB where-filter so each user only searches their own documents.
 """
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -22,13 +23,17 @@ class QueryRequest(BaseModel):
     rewrite: bool = True
     stream: bool = False
     history: List[dict] = []
+    user_id: Optional[str] = None          # ← per-user isolation
 
 
 @router.post("/")
 async def query_documents(req: QueryRequest):
-    """Single-shot query."""
+    """Single-shot query — scoped to user_id."""
     try:
-        result = await pipeline.query(req.question, req.filters, req.rewrite, history=req.history)
+        result = await pipeline.query(
+            req.question, req.filters, req.rewrite,
+            history=req.history, user_id=req.user_id  # ← pass user_id
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -36,9 +41,12 @@ async def query_documents(req: QueryRequest):
 
 @router.post("/stream")
 async def stream_query(req: QueryRequest):
-    """SSE streaming query."""
+    """SSE streaming query — scoped to user_id."""
     async def event_generator():
-        async for event in pipeline.stream_query(req.question, req.filters, req.rewrite, history=req.history):
+        async for event in pipeline.stream_query(
+            req.question, req.filters, req.rewrite,
+            history=req.history, user_id=req.user_id  # ← pass user_id
+        ):
             yield event
 
     return StreamingResponse(

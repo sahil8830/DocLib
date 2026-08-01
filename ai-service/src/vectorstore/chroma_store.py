@@ -85,16 +85,22 @@ class ChromaVectorStore(BaseVectorStore):
         results = self._collection.query(**kwargs)
         return results
 
-    def delete_document(self, document_id: str) -> None:
-        """Delete all chunks belonging to a document by its source path."""
-        results = self._collection.get(where={"document_id": document_id})
+    def delete_document(self, document_id: str, user_id: Optional[str] = None) -> None:
+        """Delete all chunks belonging to a document, optionally scoped to a user."""
+        where: dict = {"document_id": document_id}
+        if user_id:
+            where = {"$and": [{"document_id": document_id}, {"user_id": user_id}]}
+        results = self._collection.get(where=where)
         if results["ids"]:
             self._collection.delete(ids=results["ids"])
             logger.info("document_deleted", document_id=document_id, chunks_removed=len(results["ids"]))
 
-    def list_documents(self) -> List[Dict]:
-        """Return unique document metadata entries."""
-        results = self._collection.get(include=["metadatas"])
+    def list_documents(self, user_id: Optional[str] = None) -> List[Dict]:
+        """Return unique document metadata entries, optionally scoped to a user."""
+        kwargs: dict = {"include": ["metadatas"]}
+        if user_id:
+            kwargs["where"] = {"user_id": user_id}   # ← filter by user
+        results = self._collection.get(**kwargs)
         seen = {}
         for meta in results["metadatas"]:
             doc_id = meta.get("document_id", "")
@@ -102,5 +108,8 @@ class ChromaVectorStore(BaseVectorStore):
                 seen[doc_id] = meta
         return list(seen.values())
 
-    def get_collection_count(self) -> int:
+    def get_collection_count(self, user_id: Optional[str] = None) -> int:
+        if user_id:
+            results = self._collection.get(where={"user_id": user_id})
+            return len(results["ids"])
         return self._collection.count()

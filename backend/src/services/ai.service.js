@@ -8,28 +8,38 @@ const client = axios.create({
 })
 
 const aiService = {
-  async ingestDocument(filePath, documentId, filename) {
-    const response = await client.post('/ingest/', { file_path: filePath, document_id: documentId, filename })
+  async ingestDocument(filePath, documentId, filename, userId) {
+    const response = await client.post('/ingest/', {
+      file_path: filePath,
+      document_id: documentId,
+      filename,
+      user_id: userId,          // ← scope ingest to user
+    })
     return response.data
   },
 
-  async query(question, filters, rewrite = true) {
-    const response = await client.post('/query/', { question, filters, rewrite, stream: false })
+  async query(question, filters, rewrite = true, userId) {
+    const response = await client.post('/query/', {
+      question, filters, rewrite, stream: false,
+      user_id: userId,          // ← scope query to user
+    })
     return response.data
   },
 
-  async listDocuments() {
-    const response = await client.get('/documents/')
+  async listDocuments(userId) {
+    const response = await client.get('/documents/', { params: { user_id: userId } })
     return response.data
   },
 
-  async deleteDocument(documentId) {
-    const response = await client.delete(`/documents/${documentId}`)
+  async deleteDocument(documentId, userId) {
+    const response = await client.delete(`/documents/${documentId}`, {
+      params: { user_id: userId },  // ← scope delete to user
+    })
     return response.data
   },
 
-  async getStats() {
-    const response = await client.get('/documents/stats')
+  async getStats(userId) {
+    const response = await client.get('/documents/stats', { params: { user_id: userId } })
     return response.data
   },
 

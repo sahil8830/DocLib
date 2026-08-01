@@ -2,10 +2,14 @@ const { Router } = require('express')
 const axios = require('axios')
 const { v4: uuidv4 } = require('uuid')
 const { queryRateLimiter } = require('../middleware/rateLimiter')
+const { authMiddleware } = require('../middleware/auth.middleware')
 const { analyticsStore } = require('../services/store.service')
 
 const router = Router()
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000'
+
+// All query routes require authentication
+router.use(authMiddleware)
 
 // Single-shot query
 router.post('/', queryRateLimiter, async (req, res) => {
@@ -15,10 +19,14 @@ router.post('/', queryRateLimiter, async (req, res) => {
     return
   }
 
+  const userId = req.user.id                          // ← from JWT
   const queryId = uuidv4()
   const startTime = Date.now()
   try {
-    const response = await axios.post(`${AI_SERVICE_URL}/query/`, { question, filters, rewrite, history, stream: false })
+    const response = await axios.post(`${AI_SERVICE_URL}/query/`, {
+      question, filters, rewrite, history, stream: false,
+      user_id: userId,                                // ← scope to user
+    })
     const latencyMs = Date.now() - startTime
     await analyticsStore.addQuery({
       id: queryId,
@@ -26,6 +34,7 @@ router.post('/', queryRateLimiter, async (req, res) => {
       timestamp: new Date().toISOString(),
       latencyMs,
       chunkCount: response.data.chunk_count || 0,
+      userId,                                         // ← tag with owner
     })
     res.json({ queryId, ...response.data, latencyMs })
   } catch (err) {
@@ -41,6 +50,7 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
     return
   }
 
+  const userId = req.user.id                          // ← from JWT
   const queryId = uuidv4()
   const startTime = Date.now()
 
@@ -50,13 +60,12 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no')
   res.flushHeaders()
 
-  // Send queryId immediately so the frontend can wire up feedback before the stream finishes
   res.write(`data: ${JSON.stringify({ type: 'query_id', queryId })}\n\n`)
 
   try {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/query/stream`,
-      { question, filters, rewrite, history, stream: true },
+      { question, filters, rewrite, history, stream: true, user_id: userId },  // ← scope to user
       { responseType: 'stream' }
     )
 
@@ -72,6 +81,7 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
         timestamp: new Date().toISOString(),
         latencyMs,
         chunkCount: 0,
+        userId,                                       // ← tag with owner
       })
       res.end()
     })
@@ -87,7 +97,6 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
     res.end()
   }
 })
-
 
 // Feedback endpoint
 router.post('/:queryId/feedback', (req, res) => {

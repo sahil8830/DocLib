@@ -51,9 +51,9 @@ class RAGPipeline:
     # ─────────────────────────────────────────────
     #  INGESTION
     # ─────────────────────────────────────────────
-    async def ingest_document(self, file_path: str, document_id: str) -> Dict:
+    async def ingest_document(self, file_path: str, document_id: str, user_id: Optional[str] = None) -> Dict:
         """Full ingestion pipeline for a single document."""
-        logger.info("ingestion_started", file=file_path, doc_id=document_id)
+        logger.info("ingestion_started", file=file_path, doc_id=document_id, user_id=user_id)
 
         loader = LoaderFactory.get_loader(file_path)
         raw_docs = loader.load(file_path)
@@ -61,9 +61,11 @@ class RAGPipeline:
         if not raw_docs:
             raise ValueError(f"No content extracted from {file_path}")
 
-        # Tag each doc with document_id for future deletion
+        # Tag each chunk with document_id AND user_id for future filtering/deletion
         for doc in raw_docs:
             doc.metadata["document_id"] = document_id
+            if user_id:
+                doc.metadata["user_id"] = user_id   # ← per-user tag
 
         chunks = self.chunker.chunk(raw_docs)
         texts = [c.content for c in chunks]
@@ -87,12 +89,17 @@ class RAGPipeline:
     # ─────────────────────────────────────────────
     #  QUERY
     # ─────────────────────────────────────────────
-    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None) -> Dict:
-        """Single-shot query, returns full answer."""
+    async def query(self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None, user_id: Optional[str] = None) -> Dict:
+        """Single-shot query, returns full answer — scoped to user_id."""
         if rewrite:
             question = await self.llm_service.rewrite_query(question)
 
-        chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=filters)
+        # Merge user_id into ChromaDB where-filter
+        effective_filters = dict(filters or {})
+        if user_id:
+            effective_filters["user_id"] = user_id   # ← ChromaDB filter
+
+        chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=effective_filters or None)
         answer = await self.llm_service.generate(question, chunks, history=history)
 
         return {
@@ -103,13 +110,18 @@ class RAGPipeline:
         }
 
     async def stream_query(
-        self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None
+        self, question: str, filters: Optional[dict] = None, rewrite: bool = False, history: Optional[list] = None, user_id: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
-        """Streaming query — yields text tokens as they arrive."""
+        """Streaming query — yields text tokens as they arrive — scoped to user_id."""
         if rewrite:
             question = await self.llm_service.rewrite_query(question)
 
-        chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=filters)
+        # Merge user_id into ChromaDB where-filter
+        effective_filters = dict(filters or {})
+        if user_id:
+            effective_filters["user_id"] = user_id   # ← ChromaDB filter
+
+        chunks = self.retriever.retrieve(question, top_k=self.top_k, filters=effective_filters or None)
 
         # First yield: send sources as a JSON metadata event
         import json
