@@ -89,15 +89,43 @@ class HybridRetriever(BaseRetriever):
         # --- Vector search ---
         query_embedding = self.embedding_service.embed_query(query)
         vector_results = self.vector_store.query(query_embedding, top_k=top_k * 2, where=filters)
+
+        # Guard against empty results (no matching chunks for this user/filter)
+        if not vector_results["documents"] or not vector_results["documents"][0]:
+            logger.info("vector_retrieval_empty", filters=filters)
+            return []
+
         vector_docs = vector_results["documents"][0]
         vector_metas = vector_results["metadatas"][0]
 
-        # --- BM25 search (cached) ---
+        # --- BM25 search (cached) — filtered to same user scope ---
         all_docs = self.vector_store._collection.get(include=["documents", "metadatas"])
-        corpus = all_docs["documents"]
-        corpus_metas = all_docs["metadatas"]
-        bm25, corpus, corpus_metas = self._get_bm25(corpus, corpus_metas)
+        corpus_raw = all_docs["documents"]
+        corpus_metas_raw = all_docs["metadatas"]
 
+        # Apply user_id filter to BM25 corpus so other users' docs don't leak in
+        user_id = (filters or {}).get("user_id")
+        doc_id_filter = (filters or {}).get("document_id")
+        if user_id or doc_id_filter:
+            filtered_pairs = [
+                (doc, meta) for doc, meta in zip(corpus_raw, corpus_metas_raw)
+                if (not user_id or meta.get("user_id") == user_id)
+                and (not doc_id_filter or meta.get("document_id") == doc_id_filter)
+            ]
+            corpus = [p[0] for p in filtered_pairs]
+            corpus_metas = [p[1] for p in filtered_pairs]
+        else:
+            corpus = corpus_raw
+            corpus_metas = corpus_metas_raw
+
+        if not corpus:
+            # Fall back to pure vector results if BM25 corpus is empty
+            return [
+                {"content": doc, "metadata": meta, "score": round(1.0 - vector_results["distances"][0][i], 4), "rank": i + 1}
+                for i, (doc, meta) in enumerate(zip(vector_docs, vector_metas))
+            ]
+
+        bm25, corpus, corpus_metas = self._get_bm25(corpus, corpus_metas)
         bm25_scores = bm25.get_scores(query.lower().split())
         top_bm25_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[: top_k * 2]
 

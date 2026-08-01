@@ -69,6 +69,17 @@ class ChromaVectorStore(BaseVectorStore):
         )
         logger.info("documents_added", count=len(texts))
 
+    @staticmethod
+    def _build_where(where: Optional[dict]) -> Optional[dict]:
+        """Convert a plain multi-key dict to ChromaDB's $and syntax when needed."""
+        if not where:
+            return None
+        # ChromaDB requires $and for multiple conditions
+        items = [{k: v} for k, v in where.items()]
+        if len(items) == 1:
+            return items[0]
+        return {"$and": items}
+
     def query(
         self,
         query_embedding: List[float],
@@ -80,8 +91,9 @@ class ChromaVectorStore(BaseVectorStore):
             n_results=min(top_k, self._collection.count() or 1),
             include=["documents", "metadatas", "distances"],
         )
-        if where:
-            kwargs["where"] = where
+        built_where = self._build_where(where)
+        if built_where:
+            kwargs["where"] = built_where
         results = self._collection.query(**kwargs)
         return results
 
