@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, MessageSquare, Trash2, ArrowLeft, Bot, User2, ChevronRight } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
 import '../styles/history.css'
+
+// Strip **Sources:** section appended by LLM
+function stripSources(text) {
+  if (!text) return text
+  return text.replace(/\*\*Sources:\*\*[\s\S]*/i, '').trim()
+}
 
 const token = () => localStorage.getItem('doclib_token') || ''
 
@@ -125,7 +132,12 @@ export default function HistoryPage() {
                 {msg.role === 'ai' ? <Bot size={14} strokeWidth={2} /> : <User2 size={13} strokeWidth={2} />}
               </div>
               <div className="history-msg-bubble">
-                <div className="history-msg-content">{msg.content}</div>
+                <div className="history-msg-content">
+                  {msg.role === 'ai'
+                    ? <div className="markdown-body"><ReactMarkdown>{stripSources(msg.content)}</ReactMarkdown></div>
+                    : msg.content
+                  }
+                </div>
                 <div className="history-msg-time">{formatDate(msg.timestamp)}</div>
               </div>
             </motion.div>
