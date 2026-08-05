@@ -335,3 +335,66 @@
   border-color: var(--accent);
   transform: translateY(-1px);
 }
+
+/* ═══════════════════════════════════════════════════
+   HISTORY MOBILE RESPONSIVE ≤ 768px
+═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Header: room for hamburger button */
+  .history-header {
+    padding: 16px 16px 14px 60px;
+  }
+
+  .history-title {
+    font-size: 17px;
+  }
+
+  /* List: tighter padding */
+  .history-list {
+    padding: 10px 12px 20px;
+  }
+
+  /* History items: slightly more compact */
+  .history-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  /* Delete btn: always visible on mobile (no hover concept) */
+  .history-delete-btn {
+    opacity: 1;
+  }
+
+  /* Detail messages */
+  .history-messages {
+    padding: 16px 16px;
+  }
+
+  .history-msg-bubble {
+    max-width: 85%;
+  }
+
+  .history-conv-title {
+    padding: 14px 16px 8px 60px;
+  }
+
+  /* Continue button: icon only on very small */
+  .history-continue-btn span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-header {
+    padding: 14px 12px 12px 52px;
+  }
+
+  .history-conv-title {
+    padding: 12px 12px 6px 52px;
+    font-size: 15px;
+  }
+
+  .history-messages {
+    padding: 12px 12px;
+  }
+}

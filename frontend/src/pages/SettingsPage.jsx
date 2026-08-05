@@ -6,7 +6,6 @@ import '../styles/pages.css'
 const DEFAULT_SETTINGS = {
   chunking: { strategy: 'fixed_size', chunk_size: 512, chunk_overlap: 64 },
   retrieval: { top_k: 6, similarity_threshold: 0.65, hybrid_search: true, bm25_weight: 0.3 },
-  llm: { model: 'gemini-2.5-flash' },
 }
 
 export default function SettingsPage() {
@@ -27,9 +26,6 @@ export default function SettingsPage() {
   const [bm25Weight, setBm25Weight] = useState(0.3)
   const [rewrite, setRewrite] = useState(true)
 
-  // LLM
-  const [llmModel, setLlmModel] = useState('gemini-2.5-flash')
-
   useEffect(() => {
     api.get('/settings')
       .then(({ data }) => {
@@ -42,7 +38,6 @@ export default function SettingsPage() {
         setHybridSearch(s.retrieval?.hybrid_search ?? true)
         setBm25Weight(s.retrieval?.bm25_weight ?? 0.3)
         setRewrite(s.retrieval?.rewrite ?? true)
-        setLlmModel(s.llm?.model ?? 'gemini-2.5-flash')
       })
       .catch((err) => {
         console.error('Failed to load settings:', err)
@@ -63,7 +58,6 @@ export default function SettingsPage() {
           bm25_weight: bm25Weight,
           rewrite,
         },
-        llm: { model: llmModel },
       })
       setSaved(true)
       addToast({ id: 'settings-saved', message: 'Settings saved — pipeline reloaded', type: 'success' })
@@ -221,16 +215,11 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Generation */}
-        <div className="settings-section">
-          <div className="settings-section-title">🤖 Generation</div>
 
           <div className="setting-row">
             <div className="setting-info">
-              <div className="setting-label">Query Rewriting</div>
-              <div className="setting-desc">Rewrite queries with Gemini before retrieval for better recall</div>
+              <div className="setting-label">Query Rewrite</div>
+              <div className="setting-desc">Rewrite your question with AI before searching — improves recall for vague or short queries (costs 1 extra LLM call)</div>
             </div>
             <div className="setting-control">
               <label className="toggle">
@@ -239,21 +228,9 @@ export default function SettingsPage() {
               </label>
             </div>
           </div>
-
-          <div className="setting-row">
-            <div className="setting-info">
-              <div className="setting-label">LLM Model</div>
-              <div className="setting-desc">Gemini model for answer generation</div>
-            </div>
-            <div className="setting-control">
-              <select id="llm-model" className="input" style={{ width: 200 }} value={llmModel} onChange={(e) => setLlmModel(e.target.value)}>
-                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-              </select>
-            </div>
-          </div>
         </div>
+
+
       </div>
     </div>
   )

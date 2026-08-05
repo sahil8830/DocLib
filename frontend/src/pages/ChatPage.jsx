@@ -14,6 +14,13 @@ const SUGGESTIONS = [
 ]
 
 
+// Strip the **Sources:** section that the LLM appends to answers
+function stripSources(text) {
+  if (!text) return text
+  // Remove everything from "**Sources:**" onwards
+  return text.replace(/\*\*Sources:\*\*[\s\S]*/i, '').trim()
+}
+
 function MessageBubble({ msg }) {
   const { setFeedback } = useAppStore()
 
@@ -47,7 +54,7 @@ function MessageBubble({ msg }) {
               </div>
             ) : (
               <div className="markdown-body">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown>{stripSources(msg.content)}</ReactMarkdown>
               </div>
             )
           ) : (
@@ -301,7 +308,6 @@ export default function ChatPage() {
             <div className="chat-header-icon"><Zap size={16} strokeWidth={2.5} /></div>
             <div>
               <div className="chat-title">Document Chat</div>
-              <div className="chat-subtitle">Ask anything about your uploaded documents</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

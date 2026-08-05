@@ -30,8 +30,20 @@
 }
 
 @media (max-width: 900px) {
-  .al-left  { width: 100%; border-right: none; }
+  .al-left  { width: 100%; border-right: none; padding: 36px 48px; }
   .al-right { display: none; }
+}
+
+@media (max-width: 640px) {
+  .al-left  { padding: 28px 24px; }
+  .al-brand { margin-bottom: 36px; }
+  .al-heading { font-size: 1.4rem; }
+}
+
+@media (max-width: 400px) {
+  .al-left  { padding: 20px 16px; }
+  .al-heading { font-size: 1.25rem; }
+  .al-brand { margin-bottom: 28px; }
 }
 
 .al-left-inner {
@@ -435,3 +447,19 @@
   font-size: 0.74rem; color: #374151; font-weight: 400;
 }
 .ap-trust-item svg { color: #374151; }
+
+/* ═══════════════════════════════════════════════════
+   AUTH MOBILE — viewport viewport
+═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Ensure auth root scrolls on small devices */
+  .al-root {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+  .al-left {
+    height: auto;
+    min-height: 100vh;
+  }
+}

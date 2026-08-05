@@ -9,8 +9,94 @@
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 200;
   overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Mobile hamburger button ── */
+/* Always in the DOM; hidden on desktop via visibility/pointer-events */
+.mobile-menu-btn {
+  position: fixed;
+  top: 13px;
+  left: 13px;
+  z-index: 300;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  /* Hidden on desktop */
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.mobile-menu-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.mobile-menu-btn:active {
+  transform: scale(0.94);
+}
+
+/* Hide hamburger when sidebar is open */
+.mobile-menu-btn.menu-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Sidebar close button (inside sidebar, mobile only) ── */
+.sidebar-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  /* Hidden on desktop */
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar-close-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* ── Overlay backdrop ── */
+/* Always in DOM; shown via .active class on mobile */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
 }
 
 /* ── Logo ── */
@@ -103,7 +189,6 @@
   color: var(--text-primary);
 }
 
-/* Remove the left bar decoration */
 .nav-item.active::before { display: none; }
 
 .nav-icon {
@@ -233,4 +318,54 @@
 }
 [data-theme='light'] .theme-toggle-sidebar:hover {
   background: rgba(0,0,0,0.05);
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE RESPONSIVE  ≤ 768px
+═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Slide sidebar off-screen by default */
+  .sidebar {
+    transform: translateX(-100%);
+    width: 270px;
+  }
+
+  /* Sidebar slides in when open */
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+    box-shadow: 6px 0 40px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Show hamburger button */
+  .mobile-menu-btn {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Show close button inside sidebar */
+  .sidebar-close-btn {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Larger tap targets for nav items */
+  .nav-item {
+    padding: 11px 12px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 260px;
+  }
+
+  .mobile-menu-btn {
+    top: 11px;
+    left: 11px;
+    width: 36px;
+    height: 36px;
+  }
 }

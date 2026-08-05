@@ -614,3 +614,96 @@
   border-color: var(--border-hover);
   background: var(--bg-card);
 }
+
+/* ═══════════════════════════════════════════════════
+   CHAT MOBILE RESPONSIVE ≤ 768px
+═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Add top padding to make room for the hamburger button */
+  .chat-header {
+    padding: 12px 16px 12px 60px; /* 60px left = hamburger width + gap */
+  }
+
+  /* Reduce wide padding on messages */
+  .chat-messages {
+    padding: 20px 16px;
+    gap: 20px;
+  }
+
+  /* Reduce input area padding */
+  .chat-input-area {
+    padding: 10px 12px 14px;
+  }
+
+  /* Welcome screen compact */
+  .chat-welcome {
+    padding-bottom: 40px;
+    gap: 14px;
+  }
+  .welcome-title {
+    font-size: 1.4rem;
+  }
+  .welcome-subtitle {
+    font-size: 0.82rem;
+    max-width: 100%;
+  }
+
+  /* Suggestion chips: wrap nicely */
+  .suggestion-chips {
+    max-width: 100%;
+    gap: 6px;
+  }
+  .suggestion-chip {
+    font-size: 0.76rem;
+    padding: 7px 12px;
+  }
+
+  /* Sources panel: slide up from bottom on mobile */
+  .sources-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 60vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 400;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+  }
+
+  /* Message bubbles: wider on mobile */
+  .message-content {
+    max-width: 90%;
+  }
+
+  /* Doc filter chips: horizontal scroll */
+  .doc-filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .doc-filter-chips::-webkit-scrollbar { display: none; }
+}
+
+@media (max-width: 480px) {
+  .chat-header {
+    padding: 10px 12px 10px 56px;
+  }
+  .chat-messages {
+    padding: 16px 12px;
+  }
+  .chat-input-area {
+    padding: 8px 10px 12px;
+  }
+  .welcome-title {
+    font-size: 1.2rem;
+  }
+  .welcome-icon {
+    width: 52px;
+    height: 52px;
+  }
+}

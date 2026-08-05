@@ -21,12 +21,14 @@ export default function AnalyticsPage() {
 
   const metrics = summary
     ? [
-        { label: 'Total Queries',     value: summary.queries.total,                                                                                                       Icon: MessageCircle, bg: 'rgba(124,58,237,0.15)', color: '#a78bfa' },
-        { label: 'Documents Ready',   value: `${summary.documents.ready}/${summary.documents.total}`,                                                                     Icon: FileText,      bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa' },
-        { label: 'Avg Latency',       value: `${summary.queries.avgLatency}ms`,                                                                                           Icon: Zap,           bg: 'rgba(245,158,11,0.15)',  color: '#fbbf24' },
-        { label: 'Positive Feedback', value: summary.queries.positive,                                                                                                    Icon: ThumbsUp,      bg: 'rgba(16,185,129,0.15)',  color: '#34d399' },
-        { label: 'Total Chunks',      value: summary.documents.totalChunks,                                                                                               Icon: Layers,        bg: 'rgba(6,182,212,0.15)',   color: '#22d3ee'  },
-        { label: 'Satisfaction Rate', value: summary.queries.total > 0 ? `${Math.round(summary.queries.positive / summary.queries.total * 100)}%` : 'N/A',               Icon: TrendingUp,    bg: 'rgba(239,68,68,0.15)',   color: '#f87171'  },
+        { label: 'Total Queries',     value: summary.queries.total,                                                                                                                                                          Icon: MessageCircle, bg: 'rgba(124,58,237,0.15)', color: '#a78bfa' },
+        { label: 'Documents Ready',   value: `${summary.documents.ready}/${summary.documents.total}`,                                                                                                                         Icon: FileText,      bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa' },
+        { label: 'Avg Latency',       value: `${summary.queries.avgLatency}ms`,                                                                                                                                                Icon: Zap,           bg: 'rgba(245,158,11,0.15)',  color: '#fbbf24' },
+        { label: '👍 Positive',       value: summary.queries.positive,                                                                                                                                                         Icon: ThumbsUp,      bg: 'rgba(16,185,129,0.15)',  color: '#34d399' },
+        { label: '👎 Negative',       value: summary.queries.negative ?? 0,                                                                                                                                                    Icon: ThumbsUp,      bg: 'rgba(239,68,68,0.15)',   color: '#f87171' },
+        { label: 'Total Feedback',    value: (summary.queries.positive || 0) + (summary.queries.negative || 0),                                                                                                                Icon: Layers,        bg: 'rgba(6,182,212,0.15)',   color: '#22d3ee'  },
+        { label: 'Total Chunks',      value: summary.documents.totalChunks,                                                                                                                                                    Icon: Layers,        bg: 'rgba(124,58,237,0.12)',  color: '#c4b5fd'  },
+        { label: 'Satisfaction Rate', value: (summary.queries.positive + (summary.queries.negative ?? 0)) > 0 ? `${Math.round(summary.queries.positive / (summary.queries.positive + (summary.queries.negative || 0)) * 100)}%` : 'N/A', Icon: TrendingUp, bg: 'rgba(245,158,11,0.12)', color: '#fde68a' },
       ]
     : []
 
