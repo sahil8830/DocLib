@@ -22,11 +22,12 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# ChromaDB data
-data/chroma_db/
+# ChromaDB data (vector store — environment-specific, never commit)
+ai-service/data/chroma_db/
 
 # Uploaded files
-data/uploads/
+ai-service/data/uploads/
+backend/uploads/
 
 # Logs
 *.log
