@@ -89,13 +89,13 @@
 
 /* ── Base Reset ────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; scroll-behavior: smooth; }
+html { font-size: 16px; scroll-behavior: smooth; height: 100%; }
 body {
   font-family: var(--font-sans);
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.65;
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -112,12 +112,12 @@ body::before, body::after { display: none; }
 [data-theme='light'] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
 /* ── Layout ────────────────────────────────────────────────── */
-#root { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+#root { display: flex; min-height: 100dvh; position: relative; z-index: 1; }
 
 .app-layout {
   display: flex;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .main-content {

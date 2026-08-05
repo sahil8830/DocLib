@@ -1,7 +1,7 @@
 /* ── Chat Page — Minimal Dark (ChatGPT Style) ──────────────── */
 .chat-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
 }
