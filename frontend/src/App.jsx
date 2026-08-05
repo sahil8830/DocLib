@@ -21,17 +21,17 @@ const PAGES = {
 }
 
 export default function App() {
-  const { user, currentPage, theme, setDocuments } = useAppStore()
+  const { user, currentPage, theme, setDocuments, newChat } = useAppStore()
 
   // Apply saved theme on first render
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // ── Fetch documents globally on login/refresh ──
-  // This ensures doc filter chips in ChatPage are always populated
+  // ── Start fresh on every page load ──
   useEffect(() => {
     if (!user) return
+    newChat() // clear messages + conversation ID
     api.get('/documents/')
       .then(({ data }) => setDocuments(data.documents))
       .catch((err) => console.error('Failed to load documents:', err))
