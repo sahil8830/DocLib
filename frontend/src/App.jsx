@@ -28,10 +28,16 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // ── Start fresh on every page load ──
+  // ── On fresh open → new chat. On reload → keep existing chat ──
+  // sessionStorage is cleared when a new tab/window is opened,
+  // but survives page reloads — so we use it to tell them apart.
   useEffect(() => {
     if (!user) return
-    newChat() // clear messages + conversation ID
+    const isReload = sessionStorage.getItem('doclib_session')
+    if (!isReload) {
+      newChat() // fresh open → clear previous chat
+      sessionStorage.setItem('doclib_session', '1')
+    }
     api.get('/documents/')
       .then(({ data }) => setDocuments(data.documents))
       .catch((err) => console.error('Failed to load documents:', err))
