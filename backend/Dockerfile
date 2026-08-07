@@ -20,6 +20,7 @@ RUN npm ci --omit=dev
 # ── Copy source code ─────────────────────────────────────────
 # Copied AFTER npm ci so source changes don't invalidate the npm cache layer
 COPY backend/src/ ./src/
+COPY config/ ./config/
 
 # ── Create uploads directory ──────────────────────────────────
 # Your index.js creates this at runtime, but creating it here
