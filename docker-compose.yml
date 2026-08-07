@@ -70,6 +70,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - SETTINGS_PATH=/app/config/settings.yaml
       # ⚠️ Use service names (not localhost) inside Docker network
       - MONGODB_URI=${MONGODB_URI}
       - AI_SERVICE_URL=http://ai-service:8000

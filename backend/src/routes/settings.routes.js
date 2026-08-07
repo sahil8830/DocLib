@@ -5,7 +5,7 @@ const yaml = require('js-yaml')
 
 const router = Router()
 
-const SETTINGS_PATH = path.resolve(__dirname, '../../../config/settings.yaml')
+const SETTINGS_PATH = process.env.SETTINGS_PATH || path.resolve(__dirname, '../../../config/settings.yaml')
 
 // GET /api/settings — read current settings.yaml
 router.get('/', (_req, res) => {
