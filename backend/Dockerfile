@@ -24,7 +24,7 @@ COPY backend/src/ ./src/
 # ── Create uploads directory ──────────────────────────────────
 # Your index.js creates this at runtime, but creating it here
 # ensures it exists with the right permissions from the start
-RUN mkdir -p uploads
+RUN mkdir -p uploads && chown node:node uploads
 
 # ── Security: run as non-root user ───────────────────────────
 # "node" is a built-in user in the node:alpine image
