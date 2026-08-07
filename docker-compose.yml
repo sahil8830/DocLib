@@ -42,10 +42,10 @@ services:
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - CHROMA_PATH=/app/data/chroma_db
-      - UPLOAD_PATH=/app/data/uploads
+      - UPLOAD_PATH=/app/uploads            # Shared with backend container
     volumes:
-      - chroma-data:/app/data/chroma_db   # Persist vector embeddings
-      - ai-uploads:/app/data/uploads       # Persist uploaded files
+      - chroma-data:/app/data/chroma_db    # Persist vector embeddings
+      - backend-uploads:/app/uploads        # Shared with backend — reads uploaded files
     networks:
       - doclib-network
     healthcheck:
@@ -124,8 +124,7 @@ services:
 volumes:
   mongo-data:        # MongoDB database files
   chroma-data:       # ChromaDB vector embeddings
-  ai-uploads:        # AI service uploaded documents
-  backend-uploads:   # Backend multer upload staging
+  backend-uploads:   # Shared: backend writes uploads, ai-service reads them
 
 # ============================================================
 #  Network — private bridge so services talk by name
