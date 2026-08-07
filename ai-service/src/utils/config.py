@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "config" / "settings.yaml"
+_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 
 def _load_settings() -> dict:

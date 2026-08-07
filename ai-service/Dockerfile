@@ -33,6 +33,7 @@ RUN pip install --upgrade pip && \
 # Copied AFTER pip install so code changes don't trigger a full reinstall
 COPY ai-service/main.py ./
 COPY ai-service/src/ ./src/
+COPY config/ ./config/
 
 # ── Persistent data directories ───────────────────────────────
 # ChromaDB stores vectors here, uploads are temp-stored here
