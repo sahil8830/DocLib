@@ -1,0 +1,21 @@
+# Default: auto-detect line endings
+* text=auto
+
+# Force LF for Docker/Linux files (must not have CRLF on server)
+Dockerfile          text eol=lf
+*.dockerfile        text eol=lf
+docker-compose.yml  text eol=lf
+docker-compose*.yml text eol=lf
+nginx.conf          text eol=lf
+.dockerignore       text eol=lf
+*.sh                text eol=lf
+
+# Shell/Python scripts
+*.py                text eol=lf
+requirements*.txt   text eol=lf
+
+# Windows-safe files (CRLF is fine)
+*.md                text eol=crlf
+*.json              text eol=crlf
+*.yaml              text eol=crlf
+*.yml               text eol=crlf

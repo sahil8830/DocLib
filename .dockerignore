@@ -1,0 +1,64 @@
+# ============================================================
+#  DocLib — Root .dockerignore
+#  Applies when building from the project root context.
+#  Each service also has its own .dockerignore for per-service builds.
+# ============================================================
+
+# ── Git ──────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Environment / Secrets ────────────────────────────────────
+# NEVER bake .env files into any image
+.env
+.env.*
+**/.env
+**/.env.*
+
+# ── Node.js (frontend & backend) ─────────────────────────────
+**/node_modules
+frontend/dist
+backend/dist
+
+# ── Python (ai-service) ──────────────────────────────────────
+ai-service/venv
+ai-service/.venv
+ai-service/env
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/.pytest_cache
+ai-service/tests/
+ai-service/test_*.py
+
+# ── Data & Uploads (use Docker volumes instead) ──────────────
+ai-service/data/
+backend/uploads/
+
+# ── Editor & OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+**/.DS_Store
+**/Thumbs.db
+.vscode
+.idea
+*.log
+**/*.log
+
+# ── Docker files themselves ───────────────────────────────────
+# No need to COPY Dockerfiles into images
+**/Dockerfile
+**/.dockerignore
+docker-compose*.yml
+
+# ── Docs & Markdown ──────────────────────────────────────────
+*.md
+!README.md
+
+# ── Misc dev files ───────────────────────────────────────────
+*.ipynb
+.ipynb_checkpoints
+token.txt
