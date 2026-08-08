@@ -15,13 +15,13 @@ services:
     container_name: doclib-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"           # Expose so you can connect with MongoDB Compass
+      - "27017:27017" # Expose so you can connect with MongoDB Compass
     volumes:
-      - mongo-data:/data/db    # Persist database across restarts
+      - mongo-data:/data/db # Persist database across restarts
     networks:
       - doclib-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,35 +32,35 @@ services:
   # ──────────────────────────────────────────────
   ai-service:
     build:
-      context: .                    # Root context → uses root .dockerignore
+      context: . # Root context → uses root .dockerignore
       dockerfile: ai-service/Dockerfile
     image: doclib-ai-service
     container_name: doclib-ai-service
     restart: unless-stopped
     ports:
-      - "8000:8000"               # FastAPI / Swagger UI at localhost:8000
+      - "8000:8000" # FastAPI / Swagger UI at localhost:8000
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - CHROMA_PATH=/app/data/chroma_db
-      - UPLOAD_PATH=/app/uploads            # Shared with backend container
+      - UPLOAD_PATH=/app/uploads # Shared with backend container
     volumes:
-      - chroma-data:/app/data/chroma_db    # Persist vector embeddings
-      - backend-uploads:/app/uploads        # Shared with backend — reads uploaded files
+      - chroma-data:/app/data/chroma_db # Persist vector embeddings
+      - backend-uploads:/app/uploads # Shared with backend — reads uploaded files
     networks:
       - doclib-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      test: [ "CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')" ]
       interval: 15s
       timeout: 10s
       retries: 5
-      start_period: 40s          # Extra time for sentence-transformer model loading
+      start_period: 40s # Extra time for sentence-transformer model loading
 
   # ──────────────────────────────────────────────
   # Backend — Node.js Express API Gateway
   # ──────────────────────────────────────────────
   backend:
     build:
-      context: .                    # Root context → uses root .dockerignore
+      context: . # Root context → uses root .dockerignore
       dockerfile: backend/Dockerfile
     image: doclib-backend
     container_name: doclib-backend
@@ -85,16 +85,16 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
     volumes:
-      - backend-uploads:/app/uploads    # Persist multer uploaded files
+      - backend-uploads:/app/uploads # Persist multer uploaded files
     networks:
       - doclib-network
     depends_on:
       mongo:
-        condition: service_healthy      # Wait for MongoDB to be ready
+        condition: service_healthy # Wait for MongoDB to be ready
       ai-service:
-        condition: service_healthy      # Wait for AI service to be ready
+        condition: service_healthy # Wait for AI service to be ready
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1))" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -105,27 +105,27 @@ services:
   # ──────────────────────────────────────────────
   frontend:
     build:
-      context: .                    # Root context → uses root .dockerignore
+      context: . # Root context → uses root .dockerignore
       dockerfile: frontend/Dockerfile
     image: doclib-frontend
     container_name: doclib-frontend
     restart: unless-stopped
     ports:
-      - "5173:80"                # Nginx listens on 80 inside, exposed as 5173
+      - "80:80"                # Nginx listens on 80 inside, exposed on standard HTTP port
     networks:
       - doclib-network
     depends_on:
       backend:
-        condition: service_healthy   # Wait for backend to be ready
+        condition: service_healthy # Wait for backend to be ready
 
 # ============================================================
 #  Named Volumes — data persists even after `docker compose down`
 #  Only `docker compose down -v` will delete volumes
 # ============================================================
 volumes:
-  mongo-data:        # MongoDB database files
-  chroma-data:       # ChromaDB vector embeddings
-  backend-uploads:   # Shared: backend writes uploads, ai-service reads them
+  mongo-data: # MongoDB database files
+  chroma-data: # ChromaDB vector embeddings
+  backend-uploads: # Shared: backend writes uploads, ai-service reads them
 
 # ============================================================
 #  Network — private bridge so services talk by name
