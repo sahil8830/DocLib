@@ -20,6 +20,13 @@ const PAGES = {
   settings: SettingsPage,
 }
 
+// Email action links (reset-password, verify-email) must always open AuthPage,
+// even if the user is already logged in.
+function isEmailActionLink() {
+  const action = new URLSearchParams(window.location.search).get('action')
+  return action === 'reset-password' || action === 'verify-email'
+}
+
 export default function App() {
   const { user, currentPage, theme, setDocuments, newChat } = useAppStore()
 
@@ -43,7 +50,8 @@ export default function App() {
       .catch((err) => console.error('Failed to load documents:', err))
   }, [user])
 
-  if (!user) return (
+  // Always show AuthPage for email action links so the token can be processed
+  if (!user || isEmailActionLink()) return (
     <>
       <AuthPage />
     </>
