@@ -74,7 +74,7 @@ services:
       # ⚠️ Use service names (not localhost) inside Docker network
       - MONGODB_URI=${MONGODB_URI}
       - AI_SERVICE_URL=http://ai-service:8000
-      - FRONTEND_URL=http://localhost:5173
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
       # Secrets — loaded from your root .env file
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - JWT_SECRET=${JWT_SECRET}
