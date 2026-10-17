@@ -46,8 +46,14 @@ async def ingest_document(req: IngestRequest):
         )
         return result
     except ValueError as e:
+        import traceback
+        print(f"❌ Ingest ValueError: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        import traceback
+        print(f"❌ Ingest Exception: {type(e).__name__}: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
     finally:
         # Clean up temp file if we created one
