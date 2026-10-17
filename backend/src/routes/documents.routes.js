@@ -71,10 +71,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     message: 'Document received and is being processed',
   })
 
-  // Process asynchronously — AI ingestion from /tmp
+  // Process asynchronously — AI ingestion from /tmp or Cloudinary URL
   try {
     const result = await aiService.ingestDocument(
-      tmpPath, documentId, req.file.originalname, userId
+      tmpPath, documentId, req.file.originalname, userId, fileUrl  // ← pass fileUrl so AI service can download from Cloudinary
     )
     await documentStore.update(documentId, { status: 'ready', chunks: result.chunks_created })
     console.log(`✅ Document ready: ${req.file.originalname} (${result.chunks_created} chunks)`)

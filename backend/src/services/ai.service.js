@@ -8,12 +8,13 @@ const client = axios.create({
 })
 
 const aiService = {
-  async ingestDocument(filePath, documentId, filename, userId) {
+  async ingestDocument(filePath, documentId, filename, userId, fileUrl = null) {
     const response = await client.post('/ingest/', {
       file_path: filePath,
       document_id: documentId,
       filename,
-      user_id: userId,          // ← scope ingest to user
+      user_id: userId,
+      file_url: fileUrl,   // ← Cloudinary/S3 URL so AI service can download when on different server
     })
     return response.data
   },
