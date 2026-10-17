@@ -7,16 +7,28 @@ const client = axios.create({
   timeout: 120_000,
 })
 
+// Retry helper — handles Render free tier cold starts (service sleeps after 15min)
+async function withRetry(fn, retries = 3, delayMs = 5000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (i === retries - 1) throw err
+      console.log(`⚠️ AI service call failed, retrying in ${delayMs}ms... (attempt ${i + 1}/${retries})`)
+      await new Promise(r => setTimeout(r, delayMs))
+    }
+  }
+}
+
 const aiService = {
   async ingestDocument(filePath, documentId, filename, userId, fileUrl = null) {
-    const response = await client.post('/ingest/', {
+    return withRetry(() => client.post('/ingest/', {
       file_path: filePath,
       document_id: documentId,
       filename,
       user_id: userId,
-      file_url: fileUrl,   // ← Cloudinary/S3 URL so AI service can download when on different server
-    })
-    return response.data
+      file_url: fileUrl,
+    }).then(r => r.data), 3, 8000)  // 3 retries, 8s apart (for Render cold start ~30s)
   },
 
   async query(question, filters, rewrite = true, userId) {
