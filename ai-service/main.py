@@ -2,6 +2,7 @@
 Contexa AI Microservice — Entry Point
 Internal FastAPI service consumed by the Node.js Express gateway.
 """
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=int(os.environ.get("PORT", "8000")),
         reload=settings.get("dev_mode", False),
         log_level="info",
     )

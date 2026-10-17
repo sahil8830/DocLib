@@ -34,7 +34,7 @@ const aiService = {
       filename,
       user_id: userId,
       file_content_b64: fileContentB64,  // ← base64 file bytes
-    }).then(r => r.data), 3, 8000)
+    }).then(r => r.data), 2, 8000)
   },
 
   async query(question, filters, rewrite = true, userId) {

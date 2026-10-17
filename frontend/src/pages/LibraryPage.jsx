@@ -88,6 +88,7 @@ export default function LibraryPage() {
 
       try {
         const { data } = await api.post('/documents/upload', formData, {
+          timeout: 300_000,
           headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (e) => {
             const pct = Math.round((e.loaded * 100) / (e.total || 1))
@@ -95,7 +96,7 @@ export default function LibraryPage() {
           },
         })
 
-        setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, status: 'processing' } : u))
+        setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, status: data.status } : u))
         addDocument({
           id: data.documentId,
           filename: file.name,
@@ -103,10 +104,11 @@ export default function LibraryPage() {
           size: file.size,
           type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           uploadedAt: new Date().toISOString(),
-          status: 'processing',
+          status: data.status,
+          chunks: data.chunks,
         })
 
-        addToast({ id: uploadId, message: `${file.name} uploaded — processing…`, type: 'info' })
+        addToast({ id: uploadId, message: `${file.name} ready`, type: 'success' })
         setTimeout(() => setUploads((prev) => prev.filter((u) => u.id !== uploadId)), 5000)
       } catch {
         setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, status: 'error' } : u))

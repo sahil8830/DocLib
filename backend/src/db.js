@@ -7,7 +7,7 @@ const dnsSync = require('dns')
 // Override to use Google's and Cloudflare's public DNS servers.
 dnsSync.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1'])
 
-let isConnected = false
+let connectionPromise = null
 
 /**
  * Resolves the mongodb+srv:// URI into a standard mongodb:// URI with all
@@ -70,12 +70,12 @@ async function resolveSrvUri(uri) {
 
 
 async function connectDB() {
-  if (isConnected) return
+  if (mongoose.connection.readyState === 1) return
+  if (connectionPromise) return connectionPromise
 
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/doclib'
-  const safeUri = uri.replace(/(:\/\/[^:]+:)[^@]+(@)/, '$1***$2')
 
-  try {
+  connectionPromise = (async () => {
     const resolvedUri = await resolveSrvUri(uri)
 
     await mongoose.connect(resolvedUri, {
@@ -84,18 +84,21 @@ async function connectDB() {
       family: 4, // Force IPv4 TCP connections
     })
 
-    isConnected = true
-    console.log(`✅ MongoDB connected: ${safeUri}`)
+    console.log('✅ MongoDB connected')
+  })()
+
+  try {
+    await connectionPromise
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message)
-    console.error('   URI (masked):', safeUri)
-    process.exit(1)
+    throw err
+  } finally {
+    connectionPromise = null
   }
 }
 
 mongoose.connection.on('disconnected', () => {
   console.warn('⚠️  MongoDB disconnected — attempting to reconnect...')
-  isConnected = false
 })
 
 module.exports = { connectDB }

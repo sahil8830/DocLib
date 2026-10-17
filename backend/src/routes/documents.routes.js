@@ -64,14 +64,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
   await documentStore.add(record)
 
-  res.status(202).json({
-    documentId,
-    filename: req.file.originalname,
-    status: 'processing',
-    message: 'Document received and is being processed',
-  })
-
-  // Process asynchronously — AI ingestion from /tmp or signed Cloudinary URL
+  // Complete ingestion before responding so serverless execution stays active.
   try {
     // Generate signed URL so AI service on Render can download from Cloudinary
     const downloadUrl = useCloudinary
@@ -82,9 +75,21 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     )
     await documentStore.update(documentId, { status: 'ready', chunks: result.chunks_created })
     console.log(`✅ Document ready: ${req.file.originalname} (${result.chunks_created} chunks)`)
+    res.status(201).json({
+      documentId,
+      filename: req.file.originalname,
+      status: 'ready',
+      chunks: result.chunks_created,
+      message: 'Document processed successfully',
+    })
   } catch (err) {
     await documentStore.update(documentId, { status: 'failed' })
     console.error(`❌ Ingestion failed: ${err.message}`)
+    res.status(502).json({
+      documentId,
+      status: 'failed',
+      error: err.response?.data?.detail || 'AI service could not process this document. Please try again.',
+    })
   } finally {
     // Always clean up /tmp
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
