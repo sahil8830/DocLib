@@ -16,11 +16,16 @@ const cloudinaryService = {
      * @returns {string} The secure public URL of the uploaded file.
      */
     async uploadFile(localFilePath, cloudKey, mimeType) {
+        console.log('☁️ Cloudinary config:', {
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            has_secret: !!process.env.CLOUDINARY_API_SECRET,
+        })
         const result = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: 'raw',       // required for PDF, DOCX, TXT (non-image files)
-            public_id: cloudKey.replace(/\.[^/.]+$/, ''),  // strip extension — Cloudinary adds it
+            resource_type: 'raw',
+            public_id: cloudKey.replace(/\.[^/.]+$/, ''),
             overwrite: true,
-            folder: '',                 // cloudKey already has path (e.g. uploads/userId/docId-file)
+            use_filename: false,
         })
         return result.secure_url
     },
