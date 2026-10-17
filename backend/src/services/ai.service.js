@@ -22,13 +22,19 @@ async function withRetry(fn, retries = 3, delayMs = 5000) {
 
 const aiService = {
   async ingestDocument(filePath, documentId, filename, userId, fileUrl = null) {
+    // Read file from /tmp and send as base64 — avoids Cloudinary URL auth issues
+    const fs = require('fs')
+    let fileContentB64 = null
+    if (fs.existsSync(filePath)) {
+      fileContentB64 = fs.readFileSync(filePath).toString('base64')
+    }
     return withRetry(() => client.post('/ingest/', {
       file_path: filePath,
       document_id: documentId,
       filename,
       user_id: userId,
-      file_url: fileUrl,
-    }).then(r => r.data), 3, 8000)  // 3 retries, 8s apart (for Render cold start ~30s)
+      file_content_b64: fileContentB64,  // ← base64 file bytes
+    }).then(r => r.data), 3, 8000)
   },
 
   async query(question, filters, rewrite = true, userId) {
