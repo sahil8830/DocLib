@@ -44,12 +44,39 @@ class PDFLoader(BaseLoader):
 
 class DOCXLoader(BaseLoader):
     def load(self, file_path: str) -> List[Document]:
-        from docx import Document as DocxDocument
-        doc = DocxDocument(file_path)
-        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
-        content = "\n".join(paragraphs)
-        logger.info("docx_loaded", path=file_path, paragraphs=len(paragraphs))
-        return [Document(content=content, metadata={"source": file_path, "type": "docx"})]
+        try:
+            from docx import Document as DocxDocument
+            doc = DocxDocument(file_path)
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            content = "\n".join(paragraphs)
+            logger.info("docx_loaded", path=file_path, paragraphs=len(paragraphs))
+            return [Document(content=content, metadata={"source": file_path, "type": "docx"})]
+        except (KeyError, Exception) as e:
+            # Fallback: extract raw text from the ZIP archive directly
+            logger.warning("docx_fallback", path=file_path, error=str(e))
+            return self._load_raw_xml(file_path)
+
+    def _load_raw_xml(self, file_path: str) -> List[Document]:
+        """Fallback: read word/document.xml directly from the DOCX ZIP."""
+        import zipfile
+        import re
+        try:
+            with zipfile.ZipFile(file_path, 'r') as z:
+                names = z.namelist()
+                # Try document.xml first, then any XML in word/
+                target = 'word/document.xml' if 'word/document.xml' in names else next(
+                    (n for n in names if n.startswith('word/') and n.endswith('.xml')), None
+                )
+                if not target:
+                    raise ValueError("No readable content found in DOCX")
+                xml_content = z.read(target).decode('utf-8', errors='ignore')
+                # Strip XML tags to get plain text
+                text = re.sub(r'<[^>]+>', ' ', xml_content)
+                text = re.sub(r'\s+', ' ', text).strip()
+                logger.info("docx_raw_xml_loaded", path=file_path, chars=len(text))
+                return [Document(content=text, metadata={"source": file_path, "type": "docx"})]
+        except Exception as e2:
+            raise ValueError(f"Could not extract text from DOCX: {e2}")
 
 
 class TXTLoader(BaseLoader):
