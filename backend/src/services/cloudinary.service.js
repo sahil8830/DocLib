@@ -8,46 +8,35 @@ cloudinary.config({
 })
 
 const cloudinaryService = {
-    /**
-     * Upload a local file to Cloudinary.
-     * @param {string} localFilePath - Absolute path of the temp file on disk.
-     * @param {string} cloudKey      - Destination public_id in Cloudinary (e.g. "uploads/uuid-file").
-     * @param {string} mimeType      - MIME type of the file (not used directly, Cloudinary auto-detects).
-     * @returns {string} The secure public URL of the uploaded file.
-     */
     async uploadFile(localFilePath, cloudKey, mimeType) {
-        console.log('☁️ Cloudinary config:', {
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-            api_key: process.env.CLOUDINARY_API_KEY,
-            has_secret: !!process.env.CLOUDINARY_API_SECRET,
-        })
         const result = await cloudinary.uploader.upload(localFilePath, {
             resource_type: 'raw',
             public_id: cloudKey.replace(/\.[^/.]+$/, ''),
             overwrite: true,
             use_filename: false,
-            access_mode: 'public',   // ensure file is publicly accessible via URL
-            type: 'upload',          // public upload (not private/authenticated)
+            access_mode: 'public',
+            type: 'upload',
         })
         return result.secure_url
     },
 
     /**
-     * Delete a file from Cloudinary.
-     * @param {string} cloudKey - The public_id / path used during upload.
+     * Generate a signed download URL (valid for 1 hour).
+     * Used to give the AI service on Render temporary access to download files.
      */
+    getSignedDownloadUrl(cloudKey) {
+        const publicId = cloudKey.replace(/\.[^/.]+$/, '')
+        return cloudinary.utils.private_download_url(publicId, 'raw', {
+            resource_type: 'raw',
+            expires_at: Math.floor(Date.now() / 1000) + 3600,  // 1 hour
+        })
+    },
+
     async deleteFile(cloudKey) {
-        // Strip extension for public_id lookup
         const publicId = cloudKey.replace(/\.[^/.]+$/, '')
         await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' })
     },
 
-    /**
-     * Get a direct URL for a file (Cloudinary URLs are always public).
-     * Mirrors the s3Service.getPresignedUrl signature for drop-in compatibility.
-     * @param {string} cloudKey - The public_id used during upload.
-     * @returns {string} The secure public URL.
-     */
     async getPresignedUrl(cloudKey) {
         const publicId = cloudKey.replace(/\.[^/.]+$/, '')
         return cloudinary.url(publicId, {
