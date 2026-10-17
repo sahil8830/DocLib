@@ -43,6 +43,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     fileUrl = await storageService.uploadFile(tmpPath, fileKey, req.file.mimetype)
   } catch (err) {
+    console.error('❌ Storage upload error:', err.message, err.http_code || '', JSON.stringify(err.error || ''))
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
     return res.status(500).json({ error: 'Storage upload failed: ' + err.message })
   }
