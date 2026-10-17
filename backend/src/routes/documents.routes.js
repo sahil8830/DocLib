@@ -6,7 +6,14 @@ const { upload } = require('../middleware/upload.middleware')
 const { authMiddleware } = require('../middleware/auth.middleware')
 const { aiService } = require('../services/ai.service')
 const { documentStore } = require('../services/store.service')
-const { s3Service } = require('../services/s3.service')
+
+// ── Storage: swap between S3 and Cloudinary via env var ──────────────────────
+const useCloudinary = process.env.USE_CLOUDINARY === 'true'
+const storageService = useCloudinary
+  ? require('../services/cloudinary.service').cloudinaryService
+  : require('../services/s3.service').s3Service
+console.log(`📦 Storage: ${useCloudinary ? 'Cloudinary' : 'AWS S3'}`)
+
 
 const router = Router()
 
@@ -23,15 +30,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   const userId = req.user.id                         // ← from JWT
   const documentId = uuidv4()
 
-  // User-scoped S3 key: uploads/{userId}/{documentId}-{filename}
-  const s3Key = `uploads/${userId}/${documentId}-${req.file.originalname.replace(/\s+/g, '_')}`
+  // User-scoped storage key: uploads/{userId}/{documentId}-{filename}
+  const fileKey = `uploads/${userId}/${documentId}-${req.file.originalname.replace(/\s+/g, '_')}`
 
-  // Upload to S3
-  let s3Url
+  // Upload to storage (S3 or Cloudinary)
+  let fileUrl
   try {
-    s3Url = await s3Service.uploadFile(req.file.path, s3Key, req.file.mimetype)
+    fileUrl = await storageService.uploadFile(req.file.path, fileKey, req.file.mimetype)
   } catch (err) {
-    return res.status(500).json({ error: 'S3 upload failed: ' + err.message })
+    return res.status(500).json({ error: 'Storage upload failed: ' + err.message })
   }
 
   const record = {
@@ -43,9 +50,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     uploadedAt: new Date().toISOString(),
     status: 'processing',
     filePath: req.file.path,
-    s3Key,
-    s3Url,
-    userId,                                           // ← tag with owner
+    s3Key: fileKey,       // keep field name for DB compatibility
+    s3Url: fileUrl,       // keep field name for DB compatibility
+    userId,
   }
 
   await documentStore.add(record)
@@ -100,10 +107,10 @@ router.delete('/:id', async (req, res) => {
   try {
     await aiService.deleteDocument(docId, req.user.id)       // ← scoped
 
-    // Delete from S3
+    // Delete from storage (S3 or Cloudinary)
     if (doc.s3Key) {
-      await s3Service.deleteFile(doc.s3Key)
-      console.log(`🗑️ Deleted from S3: ${doc.s3Key}`)
+      await storageService.deleteFile(doc.s3Key)
+      console.log(`🗑️ Deleted from storage: ${doc.s3Key}`)
     }
 
     // Clean up any remaining local file
