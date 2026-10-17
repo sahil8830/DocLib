@@ -5,17 +5,40 @@ Includes retry logic with exponential backoff.
 """
 from abc import ABC, abstractmethod
 from typing import List
-import time
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, retry_if_exception
 
 from google import genai
+from google.genai.errors import APIError
 from google.genai import types as genai_types
 from src.utils.config import GEMINI_API_KEY, settings
 from src.utils.logger import get_logger
+from src.utils.gemini_errors import retry_delay_seconds
 
 logger = get_logger(__name__)
 
-_client = genai.Client(api_key=GEMINI_API_KEY)
+# Keep one retry layer: SDK retries plus application retries multiply quota use.
+_client = genai.Client(
+    api_key=GEMINI_API_KEY,
+    http_options=genai_types.HttpOptions(
+        retry_options=genai_types.HttpRetryOptions(attempts=1),
+    ),
+)
+
+
+def _is_retryable(error):
+    return isinstance(error, APIError) and (
+        error.code in (500, 502, 503, 504)
+        or (error.code == 429 and retry_delay_seconds(error) <= 60)
+    )
+
+
+def _retry_wait(retry_state):
+    error = retry_state.outcome.exception()
+    if error.code == 429:
+        # Round up and leave a small margin after the provider's quota window.
+        return retry_delay_seconds(error) + 1
+    return 2
+
 
 
 class BaseEmbeddingService(ABC):
@@ -29,16 +52,17 @@ class BaseEmbeddingService(ABC):
 
 
 class GeminiEmbeddingService(BaseEmbeddingService):
-    """Gemini text-embedding-004 — 768-dimension embeddings."""
+    """Gemini embeddings using the model configured in settings.yaml."""
 
     def __init__(self):
         self.model = settings.get("embeddings", {}).get("model", "models/text-embedding-004")
         self.batch_size = settings.get("embeddings", {}).get("batch_size", 100)
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type(Exception),
+        stop=stop_after_attempt(2),
+        wait=_retry_wait,
+        retry=retry_if_exception(_is_retryable),
+        reraise=True,
     )
     def _embed_batch(self, texts: List[str], task_type: str = "RETRIEVAL_DOCUMENT") -> List[List[float]]:
         result = _client.models.embed_content(

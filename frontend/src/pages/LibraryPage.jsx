@@ -110,9 +110,9 @@ export default function LibraryPage() {
 
         addToast({ id: uploadId, message: `${file.name} ready`, type: 'success' })
         setTimeout(() => setUploads((prev) => prev.filter((u) => u.id !== uploadId)), 5000)
-      } catch {
+      } catch (err) {
         setUploads((prev) => prev.map((u) => u.id === uploadId ? { ...u, status: 'error' } : u))
-        addToast({ id: uploadId, message: `Failed to upload ${file.name}`, type: 'error' })
+        addToast({ id: uploadId, message: err.response?.data?.error || `Failed to upload ${file.name}`, type: 'error' })
         setTimeout(() => setUploads((prev) => prev.filter((u) => u.id !== uploadId)), 4000)
       }
     }

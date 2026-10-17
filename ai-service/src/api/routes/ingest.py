@@ -6,6 +6,8 @@ import os
 import base64
 import tempfile
 from fastapi import APIRouter, HTTPException
+from google.genai.errors import APIError
+from src.utils.gemini_errors import retry_delay_seconds
 from pydantic import BaseModel
 from typing import Optional
 from src.pipeline.rag_pipeline import RAGPipeline
@@ -43,6 +45,16 @@ async def ingest_document(req: IngestRequest):
             ingest_path, req.document_id, req.user_id
         )
         return result
+    except APIError as e:
+        if e.code == 429:
+            delay = retry_delay_seconds(e)
+            raise HTTPException(
+                status_code=429,
+                detail=(f"Gemini embedding quota exceeded. Try again after {delay} seconds. "
+                        "If this continues, check the project's quota in Google AI Studio."),
+                headers={"Retry-After": str(delay)},
+            ) from e
+        raise HTTPException(status_code=502, detail="Gemini embedding service failed.") from e
     except ValueError as e:
         import traceback
         print(f"❌ Ingest ValueError: {e}")

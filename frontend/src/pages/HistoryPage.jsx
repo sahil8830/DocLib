@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, MessageSquare, Trash2, ArrowLeft, Bot, User2, ChevronRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import api from '../services/api.js'
 import { useAppStore } from '../store/useAppStore.js'
 import '../styles/history.css'
 
@@ -10,8 +11,6 @@ function stripSources(text) {
   if (!text) return text
   return text.replace(/\*\*Sources:\*\*[\s\S]*/i, '').trim()
 }
-
-const token = () => localStorage.getItem('doclib_token') || ''
 
 function formatDate(isoString) {
   const d = new Date(isoString)
@@ -45,10 +44,7 @@ export default function HistoryPage() {
   async function fetchConversations() {
     setLoading(true)
     try {
-      const res = await fetch('/api/conversations', {
-        headers: { Authorization: `Bearer ${token()}` },
-      })
-      const data = await res.json()
+      const { data } = await api.get('/conversations')
       setConversations(data.conversations || [])
     } catch (err) {
       console.error('Failed to load conversations:', err)
@@ -61,10 +57,7 @@ export default function HistoryPage() {
   async function openConversation(conv) {
     setLoadingConv(true)
     try {
-      const res = await fetch(`/api/conversations/${conv.id}`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      })
-      const data = await res.json()
+      const { data } = await api.get(`/conversations/${conv.id}`)
       setSelected(data)
     } catch (err) {
       console.error('Failed to load conversation:', err)
@@ -78,10 +71,7 @@ export default function HistoryPage() {
     e.stopPropagation()
     setDeletingId(id)
     try {
-      await fetch(`/api/conversations/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token()}` },
-      })
+      await api.delete(`/conversations/${id}`)
       setConversations((prev) => prev.filter((c) => c.id !== id))
       if (selected?.id === id) setSelected(null)
     } catch (err) {

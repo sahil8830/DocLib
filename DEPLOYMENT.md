@@ -79,3 +79,27 @@ Platform references:
 - https://vercel.com/docs/frameworks/backend/express
 - https://vercel.com/docs/project-configuration/vercel-json
 - https://render.com/docs/deploy-fastapi
+
+## Gemini embedding quota (429)
+
+If logs show `embed_content_free_tier_requests` and
+`EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier`, the upload
+reached Google's per-minute embedding quota. Follow the response's retry delay,
+pause repeated uploads, and retry with one small document. Check the affected
+project's active limits in https://aistudio.google.com/rate-limit . Quotas are
+per project, so replacing a key within the same project does not raise them.
+If normal usage repeatedly exceeds the free limit, review paid-tier quotas and
+billing in AI Studio before choosing whether to upgrade.
+
+The embedding client retries transient quota errors once after the provider's
+delay (up to a minute), with SDK retries disabled to avoid multiplying calls.
+If quota remains exhausted, ingestion and the gateway return 429 with
+`Retry-After`, and the frontend displays the quota message. Longer jobs still
+need a durable worker to avoid request timeouts; retry handling cannot increase
+Google's quota.
+
+Run the offline retry regression tests from `ai-service`:
+
+```sh
+GEMINI_API_KEY=offline-test-key venv/bin/python -m unittest discover -s tests -v
+```

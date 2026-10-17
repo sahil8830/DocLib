@@ -85,7 +85,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   } catch (err) {
     await documentStore.update(documentId, { status: 'failed' })
     console.error(`❌ Ingestion failed: ${err.message}`)
-    res.status(502).json({
+    const quotaExceeded = err.response?.status === 429
+    if (quotaExceeded && err.response.headers?.['retry-after']) {
+      res.setHeader('Retry-After', err.response.headers['retry-after'])
+    }
+    res.status(quotaExceeded ? 429 : 502).json({
       documentId,
       status: 'failed',
       error: err.response?.data?.detail || 'AI service could not process this document. Please try again.',

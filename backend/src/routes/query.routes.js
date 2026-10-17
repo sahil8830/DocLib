@@ -69,28 +69,24 @@ router.post('/stream', queryRateLimiter, async (req, res) => {
       { responseType: 'stream' }
     )
 
-    aiResponse.data.on('data', (chunk) => {
-      res.write(chunk.toString())
-    })
-
-    aiResponse.data.on('end', async () => {
-      const latencyMs = Date.now() - startTime
+    // Keep the request active until the upstream stream has finished.
+    for await (const chunk of aiResponse.data) {
+      res.write(chunk)
+    }
+    try {
       await analyticsStore.addQuery({
         id: queryId,
         question,
         timestamp: new Date().toISOString(),
-        latencyMs,
+        latencyMs: Date.now() - startTime,
         chunkCount: 0,
-        userId,                                       // ← tag with owner
+        userId,
       })
-      res.end()
-    })
+    } catch (err) {
+      console.error('Failed to save query analytics:', err.message)
+    }
+    res.end()
 
-    aiResponse.data.on('error', (err) => {
-      console.error('AI stream error:', err.message)
-      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Stream error' })}\n\n`)
-      res.end()
-    })
   } catch (err) {
     console.error('Stream query failed:', err.message)
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`)

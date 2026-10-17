@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { useAppStore } from '../store/useAppStore.js'
 import api from '../services/api.js'
+import { readChatStream } from '../services/chatStream.js'
 import '../styles/chat.css'
 
 const SUGGESTIONS = [
@@ -18,7 +19,7 @@ const SUGGESTIONS = [
 function stripSources(text) {
   if (!text) return text
   // Remove everything from "**Sources:**" onwards
-  return text.replace(/\*\*Sources:\*\*[\s\S]*/i, '').trim()
+  return text.replace(/\*\*Sources:\*\*[\s\S]*/i, '').trim() || text
 }
 
 function MessageBubble({ msg }) {
@@ -54,7 +55,7 @@ function MessageBubble({ msg }) {
               </div>
             ) : (
               <div className="markdown-body">
-                <ReactMarkdown>{stripSources(msg.content)}</ReactMarkdown>
+                <ReactMarkdown>{stripSources(msg.content) || 'No answer was received. Please send your question again.'}</ReactMarkdown>
               </div>
             )
           ) : (
@@ -186,13 +187,7 @@ export default function ChatPage() {
     let convId = conversationIdRef.current
     if (!convId) {
       try {
-        const token = localStorage.getItem('doclib_token') || ''
-        const res = await fetch('/api/conversations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ title: question, messages: [] }),
-        })
-        const data = await res.json()
+        const { data } = await api.post('/conversations', { title: question, messages: [] })
         convId = data.id
         conversationIdRef.current = convId
         setActiveConversationId(convId)
@@ -208,7 +203,7 @@ export default function ChatPage() {
     let aiTimestamp = new Date().toISOString()
 
     try {
-      const response = await fetch('/api/query/stream', {
+      const response = await fetch(api.getUri({ url: '/query/stream' }), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,52 +212,27 @@ export default function ChatPage() {
         body: JSON.stringify({ question, filters, history, rewrite: false }),
       })
 
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (reader) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.type === 'query_id') {
-              setLastMessageQueryId(data.queryId)
-            } else if (data.type === 'sources') {
-              setActiveSources(data.sources)
-            } else if (data.type === 'token') {
-              fullText += data.text
-              updateLastMessage(fullText, true)
-            } else if (data.type === 'error') {
-              console.error('Stream error from server:', data.message)
-            }
-          } catch (parseErr) {
-            console.warn('Failed to parse SSE line:', line, parseErr)
-          }
+      fullText = await readChatStream(response, (data) => {
+        if (data.type === 'query_id') {
+          setLastMessageQueryId(data.queryId)
+        } else if (data.type === 'sources') {
+          setActiveSources(data.sources)
+        } else if (data.type === 'token') {
+          fullText += data.text
+          updateLastMessage(fullText, true)
         }
-      }
+      })
 
       updateLastMessage(fullText, false)
 
       // ── Append Q&A pair to conversation in MongoDB ────────
       if (convId && fullText) {
         try {
-          const token = localStorage.getItem('doclib_token') || ''
-          await fetch(`/api/conversations/${convId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({
-              messages: [
-                { role: 'user', content: question, timestamp: now },
-                { role: 'ai',   content: fullText,  timestamp: aiTimestamp },
-              ],
-            }),
+          await api.patch(`/conversations/${convId}`, {
+            messages: [
+              { role: 'user', content: question, timestamp: now },
+              { role: 'ai', content: fullText, timestamp: aiTimestamp },
+            ],
           })
         } catch (err) {
           console.error('Failed to save conversation messages:', err)
@@ -270,7 +240,9 @@ export default function ChatPage() {
       }
     } catch (err) {
       console.error('handleSend stream failed:', err)
-      updateLastMessage('Sorry, something went wrong. Please try again.', false)
+      updateLastMessage(fullText
+        ? `${fullText}\n\n${err.message || 'The answer was interrupted. Please try again.'}`
+        : err.message || 'Something went wrong. Please try again.', false)
     } finally {
       setStreaming(false)
     }

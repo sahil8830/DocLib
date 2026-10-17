@@ -13,6 +13,9 @@ async function withRetry(fn, retries = 3, delayMs = 5000) {
     try {
       return await fn()
     } catch (err) {
+      // The AI service handles provider retries. Replaying an ingestion on a
+      // quota/validation error repeats work and consumes more embedding quota.
+      if (err.response && ![502, 503, 504].includes(err.response.status)) throw err
       if (i === retries - 1) throw err
       console.log(`⚠️ AI service call failed, retrying in ${delayMs}ms... (attempt ${i + 1}/${retries})`)
       await new Promise(r => setTimeout(r, delayMs))

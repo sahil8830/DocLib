@@ -2,7 +2,10 @@
 Query route — supports both single-shot and SSE streaming queries.
 user_id is passed as a ChromaDB where-filter so each user only searches their own documents.
 """
+import json
 from fastapi import APIRouter, HTTPException, Request
+from google.genai.errors import APIError
+from src.utils.gemini_errors import retry_delay_seconds
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -43,11 +46,21 @@ async def query_documents(req: QueryRequest):
 async def stream_query(req: QueryRequest):
     """SSE streaming query — scoped to user_id."""
     async def event_generator():
-        async for event in pipeline.stream_query(
-            req.question, req.filters, req.rewrite,
-            history=req.history, user_id=req.user_id  # ← pass user_id
-        ):
-            yield event
+        try:
+            async for event in pipeline.stream_query(
+                req.question, req.filters, req.rewrite,
+                history=req.history, user_id=req.user_id
+            ):
+                yield event
+        except APIError as error:
+            if error.code == 429:
+                message = (f"Gemini quota exceeded. Try again after "
+                           f"{retry_delay_seconds(error)} seconds.")
+            else:
+                message = "Gemini could not generate an answer. Please try again."
+            yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
+        except Exception:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'The AI service could not complete the answer. Please try again.'})}\n\n"
 
     return StreamingResponse(
         event_generator(),
