@@ -26,6 +26,8 @@ const cloudinaryService = {
             public_id: cloudKey.replace(/\.[^/.]+$/, ''),
             overwrite: true,
             use_filename: false,
+            access_mode: 'public',   // ensure file is publicly accessible via URL
+            type: 'upload',          // public upload (not private/authenticated)
         })
         return result.secure_url
     },
