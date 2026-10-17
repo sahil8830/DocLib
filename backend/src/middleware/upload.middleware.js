@@ -1,16 +1,5 @@
 const multer = require('multer')
 const path = require('path')
-const { v4: uuidv4 } = require('uuid')
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'))
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    cb(null, `${uuidv4()}${ext}`)
-  },
-})
 
 const fileFilter = (_req, file, cb) => {
   const allowed = ['.pdf', '.docx', '.txt', '.md']
@@ -22,8 +11,10 @@ const fileFilter = (_req, file, cb) => {
   }
 }
 
+// Use memoryStorage — Vercel's filesystem is read-only (/tmp is the only writable dir)
+// File buffer is available at req.file.buffer after upload
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
 })

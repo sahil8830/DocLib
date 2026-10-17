@@ -27,31 +27,37 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     return
   }
 
-  const userId = req.user.id                         // ← from JWT
+  const userId = req.user.id
   const documentId = uuidv4()
+  const ext = path.extname(req.file.originalname)
 
-  // User-scoped storage key: uploads/{userId}/{documentId}-{filename}
+  // Write buffer to /tmp — the only writable dir on Vercel serverless
+  const tmpPath = path.join('/tmp', `${documentId}${ext}`)
+  fs.writeFileSync(tmpPath, req.file.buffer)
+
+  // User-scoped storage key
   const fileKey = `uploads/${userId}/${documentId}-${req.file.originalname.replace(/\s+/g, '_')}`
 
-  // Upload to storage (S3 or Cloudinary)
+  // Upload to storage (S3 or Cloudinary) from /tmp
   let fileUrl
   try {
-    fileUrl = await storageService.uploadFile(req.file.path, fileKey, req.file.mimetype)
+    fileUrl = await storageService.uploadFile(tmpPath, fileKey, req.file.mimetype)
   } catch (err) {
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
     return res.status(500).json({ error: 'Storage upload failed: ' + err.message })
   }
 
   const record = {
     id: documentId,
-    filename: req.file.filename,
+    filename: `${documentId}${ext}`,
     originalName: req.file.originalname,
     size: req.file.size,
-    type: path.extname(req.file.originalname).replace('.', '').toLowerCase(),
+    type: ext.replace('.', '').toLowerCase(),
     uploadedAt: new Date().toISOString(),
     status: 'processing',
-    filePath: req.file.path,
-    s3Key: fileKey,       // keep field name for DB compatibility
-    s3Url: fileUrl,       // keep field name for DB compatibility
+    filePath: tmpPath,
+    s3Key: fileKey,
+    s3Url: fileUrl,
     userId,
   }
 
@@ -64,19 +70,19 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     message: 'Document received and is being processed',
   })
 
-  // Process asynchronously
+  // Process asynchronously — AI ingestion from /tmp
   try {
     const result = await aiService.ingestDocument(
-      req.file.path, documentId, req.file.originalname, userId  // ← pass userId
+      tmpPath, documentId, req.file.originalname, userId
     )
     await documentStore.update(documentId, { status: 'ready', chunks: result.chunks_created })
     console.log(`✅ Document ready: ${req.file.originalname} (${result.chunks_created} chunks)`)
-
-    // Clean up local temp file after ingestion
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path)
   } catch (err) {
     await documentStore.update(documentId, { status: 'failed' })
     console.error(`❌ Ingestion failed: ${err.message}`)
+  } finally {
+    // Always clean up /tmp
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
   }
 })
 
